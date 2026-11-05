@@ -1,0 +1,2774 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
+    <title>一橋大学体育会ゴルフ部 - レート＆スコア管理システム</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(229, 231, 235, 0.8);
+        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .border-promotion { border-bottom: 3px solid #10b981 !important; background-color: rgba(16, 185, 129, 0.05); }
+        .border-demotion { border-bottom: 3px solid #f43f5e !important; background-color: rgba(244, 63, 94, 0.05); }
+
+        /* Mobile-only presentation layer. Desktop (769px+) rules above remain unchanged. */
+        .mobile-menu-button, .mobile-header-title, .mobile-header-subtitle,
+        .mobile-stats-dots, .mobile-card-list, .mobile-promotion-legend,
+        .mobile-drawer-scrim, .mobile-drawer, .mobile-tabbar, .mobile-score-fab,
+        .mobile-sheet-grab, .mobile-score-type-options, .mobile-score-backdrop { display: none; }
+
+        @media (max-width: 768px) {
+            html, body { width: 100%; max-width: 100%; overflow-x: hidden; overscroll-behavior: none; }
+            body { display: block; min-height: 100vh; overscroll-behavior: none; }
+            header { height: 56px; position: sticky; top: 0; z-index: 40; }
+            header > .max-w-7xl { height: 56px; padding: 0 10px; gap: 8px; }
+            .header-brand { min-width: 0; flex: 1; gap: 8px; }
+            .mobile-menu-button {
+                display: inline-flex; flex: 0 0 36px; width: 36px; height: 40px;
+                align-items: center; justify-content: center; border: 0; border-radius: 9px;
+                width: 44px; height: 44px; color: #fff; background: transparent; font-size: 23px; cursor: pointer;
+            }
+            .mobile-menu-button:active { background: rgba(255,255,255,.15); }
+            .header-brand > .bg-amber-400 { width: 32px !important; height: 32px !important; padding: 0 !important; flex: 0 0 32px; font-size: 16px !important; }
+            .header-brand > div:last-child { min-width: 0; flex: 1; }
+            .header-brand h1 { display: block !important; min-width: 0; font-size: 0 !important; line-height: 1.15 !important; white-space: nowrap; }
+            .desktop-header-title, .desktop-header-subtitle { display: none !important; }
+            .mobile-header-title { display: block; overflow: hidden; text-overflow: ellipsis; font-size: 15px; line-height: 18px; font-weight: 800; white-space: nowrap; }
+            #header-current-season-badge { display: none !important; }
+            .header-brand .mobile-header-subtitle { display: block; margin: 1px 0 0; font-size: 10px; line-height: 12px; color: #a7f3d0; white-space: nowrap; }
+            #sync-status-badge { position: relative; flex: 0 0 44px; width: 44px; height: 44px; padding: 0 !important; border: 0 !important; background: transparent !important; box-shadow: none !important; justify-content: center; cursor: pointer; }
+            #sync-dot { display: block; width: 9px; height: 9px; flex: 0 0 9px; }
+            #sync-text { display: none; }
+            #sync-status-badge.mobile-sync-open #sync-text {
+                display: block; position: absolute; top: 34px; right: -4px; z-index: 80; width: max-content;
+                max-width: min(280px, 80vw); padding: 9px 11px; background: #052e24; color: #d1fae5;
+                border: 1px solid #047857; border-radius: 9px; box-shadow: 0 5px 18px rgba(0,0,0,.2); white-space: normal;
+            }
+            #auth-header-container { display: none !important; }
+            header nav { display: none !important; }
+            main.max-w-7xl { width: 100%; max-width: 100%; padding: 12px 10px calc(154px + env(safe-area-inset-bottom)) !important; margin: 0; overflow-x: clip; }
+            main > section { min-width: 0; }
+            #sec-dashboard { gap: 14px !important; }
+            #sec-dashboard > #dashboard-stats-dots { margin-top: -14px !important; }
+            #sec-dashboard > .glass-card.rounded-xl { margin-top: 14px !important; }
+            #dashboard-stats-grid {
+                display: flex !important; gap: 10px !important; width: 100%; overflow-x: auto; overflow-y: hidden;
+                padding: 0 1px 5px; scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+            }
+            #dashboard-stats-grid::-webkit-scrollbar { display: none; }
+            #dashboard-stats-grid > div { flex: 0 0 46%; min-width: 0; padding: 12px !important; scroll-snap-align: start; border-radius: 13px; }
+            #dashboard-stats-grid > div > div:first-child { font-size: 10px !important; }
+            #dashboard-stats-grid > div > div:nth-child(2) { font-size: 22px !important; }
+            #dashboard-stats-grid > div > div:last-child { font-size: 10px !important; line-height: 1.35; }
+            .mobile-stats-dots { display: flex; justify-content: center; align-items: center; gap: 5px; margin: 4px 0 0; height: 8px; }
+            .mobile-stats-dots span { width: 6px; height: 6px; border-radius: 5px; background: #cbd5e1; transition: width .2s, background .2s; }
+            .mobile-stats-dots span.active { width: 16px; background: #047857; }
+            #sec-dashboard .glass-card.rounded-xl { border-radius: 14px; }
+            #sec-dashboard .glass-card.rounded-xl > .p-4.bg-slate-50\/80 { padding: 12px !important; }
+            #sec-dashboard h2 { font-size: 15px; line-height: 1.35; }
+            #sec-dashboard .glass-card.rounded-xl > .p-4.bg-slate-50\/80 > div:first-child p { font-size: 11px; line-height: 1.4; }
+            #rank-controls { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px !important; width: 100%; }
+            #rank-controls > div:first-child { display: flex !important; grid-area: season; min-width: 0; width: 100%; padding: 0 !important; background: transparent !important; border: 0 !important; box-shadow: none !important; }
+            #rank-controls > div:first-child span { display: none; }
+            #rank-controls > div:first-child select { width: 100%; min-width: 0; font-size: 14px !important; }
+            #div-filter-container { grid-area: division; display: flex; width: 100%; padding: 3px; border-radius: 10px; }
+            #div-filter-container button { flex: 1; min-width: 0; min-height: 44px; padding: 7px 2px !important; font-size: 12px; }
+            #rank-season-select, #rank-filter-grade { width: 100%; min-width: 0; min-height: 44px; padding: 8px 9px !important; border: 1px solid #cbd5e1; border-radius: 9px; background: #fff; font-size: 14px !important; }
+            #rank-controls { grid-template-areas: "season grade" "division division"; }
+            #rank-filter-grade { grid-area: grade; }
+            #rank-controls > button { display: none !important; }
+            #border-legend { display: none !important; }
+            .overflow-x-auto:has(#leaderboard-tbody), .overflow-x-auto:has(#scores-tbody) { display: none !important; }
+            .mobile-card-list { display: block; padding: 0; background: #fff; }
+            #leaderboard-mobile-list, #scores-mobile-list { border-radius: 0 0 14px 14px; overflow: hidden; }
+            .mobile-rank-card, .mobile-score-card { border-bottom: 1px solid #edf0f3; background: #fff; }
+            .mobile-rank-card:last-child, .mobile-score-card:last-child { border-bottom: 0; }
+            .mobile-rank-card summary, .mobile-score-card summary {
+                display: flex; align-items: center; gap: 9px; min-height: 66px; padding: 10px 12px; cursor: pointer; list-style: none;
+            }
+            .mobile-rank-card summary::-webkit-details-marker, .mobile-score-card summary::-webkit-details-marker { display: none; }
+            .mobile-rank-card.zone-up { box-shadow: inset 4px 0 0 #16a34a; }
+            .mobile-rank-card.zone-down { box-shadow: inset 4px 0 0 #dc2626; }
+            .mobile-rank-number { flex: 0 0 27px; text-align: center; font-size: 14px; font-weight: 800; }
+            .mobile-rank-person { flex: 1; min-width: 0; }
+            .mobile-rank-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 800; color: #1e293b; }
+            .mobile-rank-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin-top: 3px; color: #64748b; font-size: 10px; line-height: 1.25; }
+            .mobile-rank-meta .mobile-div-badge { font-size: 9px; font-weight: 700; border-radius: 4px; padding: 2px 4px; background: #e2e8f0; color: #334155; }
+            .mobile-rank-meta .mobile-rank-tag > span { font-size: 9px !important; padding: 2px 5px !important; }
+            .mobile-rank-rate { flex: 0 0 auto; min-width: 48px; text-align: right; color: #065f46; font-size: 17px; font-weight: 900; font-variant-numeric: tabular-nums; }
+            .mobile-rank-chevron { flex: 0 0 12px; color: #94a3b8; font-size: 11px; transition: transform .2s; }
+            .mobile-rank-card[open] .mobile-rank-chevron, .mobile-score-card[open] .mobile-score-chevron { transform: rotate(90deg); }
+            .mobile-rank-detail { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 5px; padding: 0 10px 11px 47px; }
+            .mobile-rank-detail > div { min-width: 0; padding: 7px 3px; text-align: center; background: #f1f5f9; border-radius: 8px; }
+            .mobile-rank-detail small { display: block; color: #64748b; font-size: 9px; }
+            .mobile-rank-detail strong { display: block; margin-top: 2px; font-size: 13px; color: #1e293b; }
+            .mobile-promotion-legend { display: flex; gap: 14px; padding: 8px 12px 10px; color: #64748b; font-size: 10px; background: #fff; }
+            .mobile-score-main { flex: 1; min-width: 0; }
+            .mobile-score-date { display: block; color: #64748b; font-size: 10px; font-weight: 700; }
+            .mobile-score-player { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 800; }
+            .mobile-score-course { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #64748b; font-size: 10px; }
+            .mobile-score-total { min-width: 48px; text-align: right; color: #047857; font-size: 18px; font-weight: 900; }
+            .mobile-score-detail { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; padding: 0 12px 12px; }
+            .mobile-score-detail > div { background: #f1f5f9; border-radius: 8px; padding: 8px 5px; text-align: center; min-width: 0; }
+            .mobile-score-detail small { display: block; color: #64748b; font-size: 9px; }
+            .mobile-score-detail strong { font-size: 13px; }
+            .mobile-score-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; }
+            .mobile-score-actions button { min-height: 44px; padding: 8px 14px; color: #dc2626; border: 1px solid #fecaca; border-radius: 8px; font-size: 12px; }
+            #sec-scores > .flex:first-child { gap: 10px !important; }
+            #sec-scores h2 { font-size: 18px; }
+            #sec-scores > .flex:first-child > div:last-child { width: 100%; display: grid; grid-template-columns: 1fr; }
+            #sec-scores > .flex:first-child > div:last-child > div { width: 100%; min-height: 44px; justify-content: space-between; padding: 7px 10px !important; }
+            #scores-season-select { flex: 1; min-width: 0; min-height: 44px; font-size: 14px !important; }
+            #sec-scores > .flex:first-child button { display: none !important; }
+            #sec-scores .glass-card { border-radius: 14px; }
+            .mobile-promotion-legend { display: flex; }
+            .mobile-promotion-legend span:first-child::before { content: ''; display: inline-block; width: 10px; height: 3px; margin: 0 5px 2px 0; background: #16a34a; }
+            .mobile-promotion-legend span:last-child::before { content: ''; display: inline-block; width: 10px; height: 3px; margin: 0 5px 2px 0; background: #dc2626; }
+            .mobile-drawer-scrim { display: block; position: fixed; inset: 0; z-index: 90; background: rgba(2,6,23,.48); opacity: 0; visibility: hidden; transition: opacity .24s, visibility .24s; }
+            .mobile-drawer-scrim.open { opacity: 1; visibility: visible; }
+            .mobile-drawer { display: block; position: fixed; inset: 0 auto 0 0; z-index: 91; width: 78%; max-width: 340px; padding: calc(20px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom)); overflow-y: auto; background: #fff; transform: translateX(-102%); transition: transform .25s ease; box-shadow: 12px 0 32px rgba(0,0,0,.16); }
+            .mobile-drawer.open { transform: translateX(0); }
+            .mobile-drawer-top { display: flex; align-items: center; gap: 10px; padding-bottom: 16px; border-bottom: 1px solid #e2e8f0; }
+            .mobile-drawer-user-icon { width: 42px; height: 42px; flex: 0 0 42px; display: grid; place-items: center; border-radius: 50%; background: #047857; color: #fff; font-weight: 800; }
+            .mobile-drawer-user-copy { flex: 1; min-width: 0; }
+            .mobile-drawer-user-copy strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+            .mobile-drawer-user-copy small { display: block; margin-top: 3px; color: #64748b; font-size: 11px; }
+            .mobile-drawer-close { width: 44px; height: 44px; border: 0; border-radius: 9px; background: #f1f5f9; color: #475569; font-size: 18px; }
+            .mobile-drawer-auth button { width: 100%; min-height: 46px; margin-top: 14px; border: 1px solid #a7f3d0; border-radius: 10px; background: #ecfdf5; color: #065f46; font-weight: 700; font-size: 13px; }
+            .mobile-drawer-section-title { margin: 20px 8px 5px; color: #94a3b8; font-size: 11px; font-weight: 800; }
+            .mobile-drawer-link { display: block; width: 100%; min-height: 46px; padding: 10px 9px; text-align: left; border: 0; border-radius: 9px; background: transparent; color: #1e293b; font-size: 14px; }
+            .mobile-drawer-link:active { background: #f1f5f9; }
+            .mobile-drawer-logout { color: #dc2626; }
+            .mobile-tabbar { display: flex; position: fixed; z-index: 45; left: 0; right: 0; bottom: 0; min-height: 60px; padding: 6px 0 calc(7px + env(safe-area-inset-bottom)); background: rgba(255,255,255,.97); border-top: 1px solid #e2e8f0; box-shadow: 0 -4px 18px rgba(15,23,42,.06); }
+            .mobile-tabbar button { flex: 1; min-width: 0; min-height: 44px; border: 0; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #64748b; font-size: 10px; }
+            .mobile-tabbar button span { font-size: 19px; line-height: 22px; }
+            .mobile-tabbar button b { font-weight: 600; }
+            .mobile-tabbar button.active { color: #047857; font-weight: 800; }
+            .mobile-tabbar button.active b { font-weight: 900; }
+            .mobile-score-fab { display: block; position: fixed; z-index: 46; right: 14px; bottom: calc(75px + env(safe-area-inset-bottom)); min-height: 48px; padding: 0 18px; border: 0; border-radius: 24px; background: #f5c518; color: #1f2937; box-shadow: 0 5px 18px rgba(0,0,0,.22); font-size: 14px; font-weight: 900; }
+            footer { margin-bottom: 0 !important; padding-bottom: calc(24px + env(safe-area-inset-bottom)) !important; }
+            /* Bottom sheet: fixed to the screen; only the sheet itself scrolls. */
+            #modal-score { position: fixed; inset: 0 !important; align-items: flex-end !important; justify-content: center !important; padding: 0 !important; z-index: 100 !important; background: transparent !important; overflow: hidden !important; }
+            #modal-score > .mobile-score-backdrop { display: block; position: absolute; inset: 0; z-index: 0; background: rgba(15,23,42,.62); touch-action: none; }
+            #modal-score > .mobile-score-sheet { position: fixed !important; left: 0; right: 0; top: auto; bottom: 0; z-index: 1; align-self: auto; transform: none; transition: none; width: 100% !important; max-width: none !important; max-height: 90vh; max-height: 90dvh; border-radius: 20px 20px 0 0 !important; border-bottom-left-radius: 0 !important; border-bottom-right-radius: 0 !important; overflow-y: auto !important; padding-bottom: calc(14px + env(safe-area-inset-bottom)) !important; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; scroll-padding-bottom: 110px; }
+            #modal-score.sheet-entering > .mobile-score-sheet { transform: translateY(100%); transition: transform .25s ease; }
+            #modal-score.sheet-entering.sheet-open > .mobile-score-sheet { transform: translateY(0); }
+            #modal-score.closing > .mobile-score-sheet { transform: translateY(100%); transition: transform .25s ease; }
+            .mobile-sheet-grab { display: block; width: 42px; height: 5px; margin: 9px auto 2px; border-radius: 5px; background: #cbd5e1; touch-action: pan-y; }
+            #modal-score > .mobile-score-sheet > .bg-emerald-900 { position: relative; top: auto; padding: 12px 16px !important; z-index: 5; }
+            #modal-score > .mobile-score-sheet > .bg-emerald-900 h3 { font-size: 14px; }
+            #modal-score > .mobile-score-sheet > .p-6 { padding: 14px !important; gap: 14px !important; }
+            #form-score .mobile-score-actions { position: sticky; bottom: 0; z-index: 8; display: flex !important; flex-direction: row !important; justify-content: flex-end; gap: 8px; margin: 12px -14px calc(-14px - env(safe-area-inset-bottom)); padding: 12px 14px calc(12px + env(safe-area-inset-bottom)); background: #fff; border-top: 1px solid #e2e8f0; box-shadow: 0 -5px 14px rgba(15,23,42,.06); }
+            #form-score .mobile-score-actions button { min-height: 48px; }
+            #form-score .mobile-score-actions button[type="submit"] { flex: 1; width: auto !important; }
+            #score-image-file { min-height: 44px; font-size: 14px !important; }
+            #btn-analyze-image { min-height: 46px; width: 100%; }
+            #form-score { gap: 13px !important; }
+            #form-score input, #form-score select, #form-score textarea, #modal-score input, #modal-score select { font-size: 16px !important; }
+            #form-score input, #form-score select { min-height: 44px; }
+            #form-score .grid.grid-cols-3 { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 7px; }
+            #form-score .grid.grid-cols-2 { grid-template-columns: 1fr; }
+            #form-score button[type="submit"] { width: 100%; min-height: 48px; font-size: 14px !important; }
+            #form-score > div:last-child { display: grid; grid-template-columns: 1fr; }
+            #score-type { display: none !important; }
+            .mobile-score-type-options { display: flex; flex-direction: column; gap: 7px; margin-top: 6px; }
+            .mobile-score-type-options label { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 13px; background: #fff; }
+            .mobile-score-type-options label:has(input:checked) { border-color: #047857; background: #ecfdf5; box-shadow: 0 0 0 1px #047857 inset; }
+            .mobile-score-type-options input { width: 18px; height: 18px; min-height: 18px !important; accent-color: #047857; }
+            #modal-login { overflow-y: auto; align-items: flex-start !important; padding: 16px !important; }
+            #modal-login > div { max-height: calc(100dvh - 32px); overflow-y: auto; margin: auto; }
+            #modal-login input, #modal-login select { min-height: 44px; font-size: 16px !important; }
+            #modal-login button, #modal-score button { min-height: 44px; }
+            #modal-score > .mobile-score-sheet > .bg-emerald-900 button { min-width: 44px; }
+            #modal-member-detail { overflow-y: auto; align-items: flex-start !important; padding: 12px !important; }
+            #modal-member-detail > div { max-height: calc(100dvh - 24px); overflow-y: auto; margin: auto; }
+            /* Other tabs remain usable without horizontal page overflow. */
+            #sec-daily, #sec-members, #sec-analytics, #sec-mypage, #sec-admin { min-width: 0; }
+            #sec-analytics .grid, #sec-mypage .grid { min-width: 0; }
+            #sec-analytics canvas { max-width: 100%; }
+            button, select, input, summary { -webkit-tap-highlight-color: transparent; }
+            button { touch-action: manipulation; }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800 flex flex-col justify-between">
+
+    <!-- TOP HEADER / NAVBAR -->
+    <header class="bg-emerald-900 text-white shadow-lg sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3 header-brand">
+                <button type="button" id="mobile-menu-button" class="mobile-menu-button" aria-label="メニューを開く" aria-expanded="false">☰</button>
+                <div class="bg-amber-400 text-emerald-950 p-2 rounded-lg font-black text-xl flex items-center justify-center w-10 h-10 shadow">
+                    🚩
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight flex items-center gap-2">
+                        <span class="desktop-header-title">一橋大学体育会ゴルフ部</span>
+                        <span class="mobile-header-title">一橋ゴルフ部 レート</span>
+                        <span class="text-xs font-normal bg-emerald-800 text-amber-300 px-2 py-0.5 rounded-full border border-emerald-700" id="header-current-season-badge">season 1</span>
+                    </h1>
+                    <p class="text-xs text-emerald-200 desktop-header-subtitle">Hitotsubashi Golf Rate & Score Hub</p>
+                    <p class="mobile-header-subtitle"><span id="mobile-season-label">season 1</span>・順位期待値方式</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 sm:gap-3">
+                <!-- Sync Status Badge -->
+                <div id="sync-status-badge" class="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-950 text-emerald-300 border border-emerald-700 shadow-inner">
+                    <span id="sync-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span id="sync-text" class="font-bold text-[11px]">🟢 ONLINE (順位期待値方式同期中)</span>
+                </div>
+
+                <!-- User Profile / Auth State -->
+                <div id="auth-header-container" class="flex items-center gap-2 border-l border-emerald-800 pl-3">
+                    <button type="button" onclick="window.openLoginModal()" id="header-login-btn" class="bg-emerald-700 hover:bg-emerald-600 text-white font-semibold px-3 py-1.5 rounded-lg text-xs transition shadow cursor-pointer">
+                        🔑 ログイン / 新規登録
+                    </button>
+                    <div id="header-user-info" class="hidden flex items-center gap-2">
+                        <div class="text-right hidden sm:block cursor-pointer" onclick="window.switchTab('mypage')">
+                            <p id="user-display-name" class="text-xs font-bold leading-tight hover:underline">ログイン中</p>
+                            <p id="user-email-display" class="text-[10px] text-amber-300"></p>
+                        </div>
+                        <button type="button" onclick="window.handleLogout()" class="p-1.5 text-emerald-200 hover:text-red-300 hover:bg-emerald-800 rounded transition cursor-pointer" title="ログアウト">
+                            🚪
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Navigation Tabs -->
+        <nav class="bg-emerald-950 px-4 text-xs font-medium border-t border-emerald-800">
+            <div class="max-w-7xl mx-auto flex space-x-1 overflow-x-auto py-1">
+                <button type="button" onclick="window.switchTab('dashboard')" id="tab-dashboard" class="nav-tab text-amber-400 border-b-2 border-amber-400 px-4 py-2 font-bold flex items-center gap-2 whitespace-nowrap cursor-pointer">
+                    📈 レート順位表 (順位期待値)
+                </button>
+                <button type="button" onclick="window.switchTab('scores')" id="tab-scores" class="nav-tab text-emerald-300 hover:text-white px-4 py-2 flex items-center gap-2 whitespace-nowrap cursor-pointer">
+                    ⛳ スコア記録＆履歴
+                </button>
+                <button type="button" onclick="window.switchTab('daily')" id="tab-daily" class="nav-tab text-emerald-300 hover:text-white px-4 py-2 flex items-center gap-2 whitespace-nowrap cursor-pointer">
+                    📅 日別ラウンド戦績
+                </button>
+                <button type="button" onclick="window.switchTab('members')" id="tab-members" class="nav-tab text-emerald-300 hover:text-white px-4 py-2 flex items-center gap-2 whitespace-nowrap cursor-pointer">
+                    👥 部員一覧・管理
+                </button>
+                <button type="button" onclick="window.switchTab('analytics')" id="tab-analytics" class="nav-tab text-emerald-300 hover:text-white px-4 py-2 flex items-center gap-2 whitespace-nowrap cursor-pointer">
+                    📊 戦績アナリティクス
+                </button>
+                <button type="button" onclick="window.switchTab('mypage')" id="tab-mypage" class="nav-tab text-emerald-300 hover:text-white px-4 py-2 flex items-center gap-2 whitespace-nowrap cursor-pointer">
+                    👤 マイページ
+                </button>
+                <button type="button" onclick="window.switchTab('admin')" id="tab-admin" class="nav-tab text-emerald-300 hover:text-white px-4 py-2 flex items-center gap-2 whitespace-nowrap cursor-pointer">
+                    🔒 管理者
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full">
+
+        <!-- GLOBAL NOTIFICATION BANNER -->
+        <div id="toast-banner" class="hidden mb-4 p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center justify-between shadow-sm transition-all duration-300">
+            <div class="flex items-center gap-2">
+                <span>ℹ️</span>
+                <span id="toast-message">クラウドと通信中...</span>
+            </div>
+            <button type="button" onclick="window.hideToast()" class="text-emerald-500 hover:text-emerald-700 text-xs">✖</button>
+        </div>
+
+        <!-- SECTION 1: DASHBOARD / RANKING -->
+        <section id="sec-dashboard" class="space-y-6">
+            <div id="dashboard-stats-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="glass-card p-4 rounded-xl shadow-sm border-l-4 border-emerald-600">
+                    <div class="text-xs font-semibold text-slate-500 uppercase">対象部員数</div>
+                    <div class="text-2xl font-bold text-slate-800 mt-1" id="stat-total-members">0 名</div>
+                    <div class="text-[11px] text-emerald-600 mt-1 font-medium" id="stat-label-members">👤 アクティブプレイヤー</div>
+                </div>
+                <div class="glass-card p-4 rounded-xl shadow-sm border-l-4 border-amber-500">
+                    <div class="text-xs font-semibold text-slate-500 uppercase">選択Div最高レート</div>
+                    <div class="text-2xl font-extrabold text-slate-800 mt-1" id="stat-top-rate">3000</div>
+                    <div class="text-[11px] text-amber-600 mt-1 font-medium" id="stat-top-player">🏆 保持者: --</div>
+                </div>
+                <div class="glass-card p-4 rounded-xl shadow-sm border-l-4 border-blue-500">
+                    <div class="text-xs font-semibold text-slate-500 uppercase">対象通算ラウンド数</div>
+                    <div class="text-2xl font-bold text-slate-800 mt-1" id="stat-total-rounds">0 回</div>
+                    <div class="text-[11px] text-blue-600 mt-1 font-medium" id="stat-label-rounds">📋 該当部員の提出合計</div>
+                </div>
+                <div class="glass-card p-4 rounded-xl shadow-sm border-l-4 border-purple-500">
+                    <div class="text-xs font-semibold text-slate-500 uppercase">対象平均スコア</div>
+                    <div class="text-2xl font-bold text-slate-800 mt-1" id="stat-avg-score">--</div>
+                    <div class="text-[11px] text-purple-600 mt-1 font-medium" id="stat-label-avg">🧮 該当部員の平均</div>
+                </div>
+            </div>
+            <div id="dashboard-stats-dots" class="mobile-stats-dots" aria-label="統計カードの位置">
+                <span class="active"></span><span></span><span></span>
+            </div>
+
+            <!-- Main Ranking Table Card -->
+            <div class="glass-card rounded-xl shadow-sm overflow-hidden">
+                <div class="p-4 bg-slate-50/80 border-b border-slate-200 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3">
+                    <div>
+                        <h2 class="font-bold text-base text-slate-800 flex items-center gap-2">
+                            ⭐ 3部制リーグ 順位期待値レートランキング
+                        </h2>
+                        <p class="text-xs text-slate-500">同日ラウンドの順位期待値に基づきフェアにレートが変動します。</p>
+                    </div>
+                    <div id="rank-controls" class="flex flex-wrap gap-2 w-full lg:w-auto items-center">
+                        <!-- Season Selector -->
+                        <div class="flex items-center gap-1.5 bg-white border border-slate-300 rounded-lg px-2.5 py-1">
+                            <span class="text-xs text-slate-500 font-bold">シーズン:</span>
+                            <select id="rank-season-select" onchange="window.renderLeaderboard()" class="text-xs bg-transparent font-bold text-emerald-800 focus:outline-none cursor-pointer">
+                                <!-- JS Dynamic options -->
+                            </select>
+                        </div>
+                        <!-- Division Filter Tabs -->
+                        <div class="flex bg-slate-200 rounded-lg p-0.5 text-xs font-bold" id="div-filter-container">
+                            <button type="button" onclick="window.setDivFilter('all')" id="div-btn-all" class="px-3 py-1 rounded-md bg-white text-emerald-800 shadow-sm cursor-pointer">全体</button>
+                            <button type="button" onclick="window.setDivFilter('1')" id="div-btn-1" class="px-3 py-1 rounded-md text-slate-600 hover:text-slate-800 cursor-pointer">1部</button>
+                            <button type="button" onclick="window.setDivFilter('2')" id="div-btn-2" class="px-3 py-1 rounded-md text-slate-600 hover:text-slate-800 cursor-pointer">2部</button>
+                            <button type="button" onclick="window.setDivFilter('3')" id="div-btn-3" class="px-3 py-1 rounded-md text-slate-600 hover:text-slate-800 cursor-pointer">3部</button>
+                        </div>
+                        <select id="rank-filter-grade" onchange="window.renderLeaderboard()" class="text-xs bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-emerald-500">
+                            <option value="all">全学年</option>
+                            <option value="1">1年</option>
+                            <option value="2">2年</option>
+                            <option value="3">3年</option>
+                            <option value="4">4年</option>
+                            <option value="OB">OB・OG</option>
+                        </select>
+                        <button type="button" onclick="window.openAddScoreModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition shadow flex items-center gap-1 whitespace-nowrap cursor-pointer">
+                            ➕ スコア登録
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Promotion / Demotion Legend Bar -->
+                <div id="border-legend" class="hidden px-4 py-2 bg-slate-100 text-[11px] text-slate-600 flex items-center gap-4 border-b border-slate-200">
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 bg-emerald-500 rounded-sm inline-block"></span> 🟩 緑線＝昇格圏 (上位4名)</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 bg-rose-500 rounded-sm inline-block"></span> 🟥 赤線＝降格圏 (下位4名)</span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-600 text-xs uppercase font-semibold border-b border-slate-200">
+                                <th class="py-3 px-4 w-16 text-center">順位</th>
+                                <th class="py-3 px-4">部員名 / 学年</th>
+                                <th class="py-3 px-4 text-center">所属Div</th>
+                                <th class="py-3 px-4 text-center">レート</th>
+                                <th class="py-3 px-4 text-center">ランク・ステータス</th>
+                                <th class="py-3 px-4 text-center">選択期間HDCP</th>
+                                <th class="py-3 px-4 text-center">平均スコア</th>
+                                <th class="py-3 px-4 text-center">ベスト</th>
+                                <th class="py-3 px-4 text-center">提出数</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboard-tbody" class="divide-y divide-slate-100 text-sm">
+                            <!-- JS Dynamically rendered rows -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="leaderboard-mobile-list" class="mobile-card-list" aria-label="レートランキング"></div>
+                <div class="mobile-promotion-legend"><span>緑＝昇格圏</span><span>赤＝降格圏</span></div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: SCORE INPUT & HISTORY -->
+        <section id="sec-scores" class="hidden space-y-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-800">ラウンドスコア記録・履歴</h2>
+                    <p class="text-xs text-slate-500">クラウド上に保存された全データのタイムラインです</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-1.5 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 shadow-sm">
+                        <span class="text-xs text-slate-500 font-bold">シーズン絞り込み:</span>
+                        <select id="scores-season-select" onchange="window.renderScoresList()" class="text-xs bg-transparent font-bold text-emerald-800 focus:outline-none cursor-pointer">
+                            <!-- JS Dynamic options -->
+                        </select>
+                    </div>
+                    <button type="button" onclick="window.openAddScoreModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-4 py-2 rounded-lg transition shadow flex items-center gap-2 cursor-pointer">
+                        ➕ 新しいスコアを記録
+                    </button>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-xl shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-600 text-xs uppercase font-semibold border-b border-slate-200">
+                                <th class="py-3 px-4">プレー日</th>
+                                <th class="py-3 px-4">プレイヤー</th>
+                                <th class="py-3 px-4">ゴルフ場名</th>
+                                <th class="py-3 px-4 text-center">OUT</th>
+                                <th class="py-3 px-4 text-center">IN</th>
+                                <th class="py-3 px-4 text-center">TOTAL</th>
+                                <th class="py-3 px-4 text-center">パット</th>
+                                <th class="py-3 px-4 text-center">所属シーズン</th>
+                                <th class="py-3 px-4 text-center">種別</th>
+                                <th class="py-3 px-4 text-right">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scores-tbody" class="divide-y divide-slate-100 text-sm">
+                            <!-- JS Dynamically rendered scores -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="scores-mobile-list" class="mobile-card-list" aria-label="スコア履歴"></div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: DAILY ROUND MATCH RESULTS -->
+        <section id="sec-daily" class="hidden space-y-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-800">📅 日別ラウンド戦績・レート変動まとめ</h2>
+                    <p class="text-xs text-slate-500">日付ごとの参加メンバーの順位、スコア、およびそのラウンドでのレート増減量をまとめて表示します</p>
+                </div>
+                <div class="flex items-center gap-1.5 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 shadow-sm">
+                    <span class="text-xs text-slate-500 font-bold">シーズン絞り込み:</span>
+                    <select id="daily-season-select" onchange="window.renderDailyTab()" class="text-xs bg-transparent font-bold text-emerald-800 focus:outline-none cursor-pointer">
+                        <!-- JS Dynamic options -->
+                    </select>
+                </div>
+            </div>
+            <div id="daily-results-container" class="space-y-6">
+                <!-- Dynamically rendered daily round cards -->
+            </div>
+        </section>
+
+        <!-- SECTION 4: MEMBERS MANAGEMENT -->
+        <section id="sec-members" class="hidden space-y-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-800">部員名簿・ディビジョン管理</h2>
+                    <p class="text-xs text-slate-500">カードをクリックすると、その部員の詳細スタッツや直近スコア履歴が閲覧できます</p>
+                </div>
+                <!-- 部員一覧用 学年フィルター -->
+                <div class="flex items-center gap-1.5 bg-white border border-slate-300 rounded-lg px-3 py-1.5 shadow-sm">
+                    <span class="text-xs text-slate-500 font-bold">学年絞り込み:</span>
+                    <select id="members-filter-grade" onchange="window.renderMembersGrid()" class="text-xs bg-transparent font-bold text-emerald-800 focus:outline-none cursor-pointer">
+                        <option value="all">全学年を表示</option>
+                        <option value="1">1年</option>
+                        <option value="2">2年</option>
+                        <option value="3">3年</option>
+                        <option value="4">4年</option>
+                        <option value="OB">OB・OG</option>
+                    </select>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="members-grid">
+                <!-- Member Cards rendered dynamically -->
+            </div>
+        </section>
+
+        <!-- SECTION 5: ANALYTICS -->
+        <section id="sec-analytics" class="hidden space-y-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-800">部内データ・アナリティクス</h2>
+                    <p class="text-xs text-slate-500">選択したシーズン・全期間の平均スコア分布、ハンディキャップ順位表、および学年別平均の可視化データ</p>
+                </div>
+                <div class="flex items-center gap-1.5 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 shadow-sm">
+                    <span class="text-xs text-slate-500 font-bold">シーズン絞り込み:</span>
+                    <select id="analytics-season-select" onchange="window.renderChartsAndHdcpTable()" class="text-xs bg-transparent font-bold text-emerald-800 focus:outline-none cursor-pointer">
+                        <!-- JS Dynamic options -->
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="glass-card p-4 rounded-xl shadow-sm">
+                    <h3 class="font-bold text-sm text-slate-700 mb-1 flex items-center gap-2">
+                        📊 平均スコア分布（横軸：平均スコア高→低、縦軸：人数）
+                    </h3>
+                    <p class="text-[11px] text-slate-400 mb-3">選択期間の全スコアを集計した各部員の平均スコア分布図です</p>
+                    <div class="h-64">
+                        <canvas id="chart-score-dist"></canvas>
+                    </div>
+                </div>
+
+                <div class="glass-card p-4 rounded-xl shadow-sm">
+                    <h3 class="font-bold text-sm text-slate-700 mb-1 flex items-center gap-2">
+                        📈 学年別平均ハンディキャップ
+                    </h3>
+                    <p class="text-[11px] text-slate-400 mb-3">選択期間における部員の学年ごとHDCP平均値</p>
+                    <div class="h-64">
+                        <canvas id="chart-grade-hdcp"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-xl shadow-sm overflow-hidden">
+                <div class="p-4 bg-slate-50/80 border-b border-slate-200">
+                    <h3 class="font-bold text-base text-slate-800 flex items-center gap-2">
+                        🏆 ハンディキャップ順位表 (選択期間HDCP順)
+                    </h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-600 text-xs uppercase font-semibold border-b border-slate-200">
+                                <th class="py-3 px-4 w-16 text-center">順位</th>
+                                <th class="py-3 px-4">部員名 / 学年</th>
+                                <th class="py-3 px-4 text-center">現在Div</th>
+                                <th class="py-3 px-4 text-center">ハンディキャップ</th>
+                                <th class="py-3 px-4 text-center">平均スコア</th>
+                                <th class="py-3 px-4 text-center">ベストスコア</th>
+                                <th class="py-3 px-4 text-center">提出ラウンド数</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hdcp-leaderboard-tbody" class="divide-y divide-slate-100 text-sm">
+                            <!-- JS Dynamically rendered rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 6: MY PAGE -->
+        <section id="sec-mypage" class="hidden space-y-6">
+            <div>
+                <h2 class="text-xl font-bold text-slate-800">👤 マイページ・プロフィール設定</h2>
+                <p class="text-xs text-slate-500">ログイン中のご本人の部員情報（名前・学年・アイコン・自己紹介等）を変更できます</p>
+            </div>
+
+            <div id="mypage-not-logged-in" class="glass-card p-8 rounded-2xl text-center space-y-4">
+                <div class="text-4xl">🔒</div>
+                <h3 class="font-bold text-lg text-slate-800">ログインが必要です</h3>
+                <p class="text-xs text-slate-500 max-w-sm mx-auto">マイページを閲覧・編集するにはアカウントでログインしてください。</p>
+                <button type="button" onclick="window.openLoginModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-5 py-2.5 rounded-xl transition shadow cursor-pointer">
+                    🔑 ログイン画面を開く
+                </button>
+            </div>
+
+            <div id="mypage-content" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="glass-card p-6 rounded-2xl shadow-sm space-y-4 text-center border-t-4 border-emerald-600">
+                    <div class="w-24 h-24 bg-emerald-800 text-amber-300 rounded-full flex items-center justify-center font-bold text-4xl mx-auto shadow-inner overflow-hidden border-2 border-amber-400" id="mypage-avatar-container">
+                        <span id="mypage-avatar-text">👤</span>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-lg text-slate-800" id="mypage-profile-name">--</h3>
+                        <p class="text-xs text-slate-500" id="mypage-profile-grade">--</p>
+                    </div>
+                    <div id="mypage-profile-badge" class="pt-1"></div>
+
+                    <div class="border-t border-slate-100 pt-4 grid grid-cols-2 gap-2 text-left">
+                        <div class="bg-slate-50 p-2.5 rounded-lg">
+                            <span class="block text-[10px] text-slate-400 font-bold uppercase">現シーズンレート</span>
+                            <span class="font-extrabold text-emerald-800 text-lg" id="mypage-stat-rate">3000</span>
+                        </div>
+                        <div class="bg-slate-50 p-2.5 rounded-lg">
+                            <span class="block text-[10px] text-slate-400 font-bold uppercase">所属ディビジョン</span>
+                            <span class="font-bold text-emerald-800 text-base" id="mypage-stat-div">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-2 glass-card p-6 rounded-2xl shadow-sm">
+                    <h3 class="font-bold text-base text-slate-800 mb-4 pb-2 border-b border-slate-100 flex items-center gap-2">
+                        ✏️ 部員情報の編集・上書き（本人認証済み）
+                    </h3>
+                    <form id="form-update-profile" class="space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">部員名（氏名）</label>
+                                <input type="text" id="mypage-input-name" required class="w-full text-sm border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">学年</label>
+                                <select id="mypage-input-grade" required class="w-full text-sm border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500">
+                                    <option value="1">1年</option>
+                                    <option value="2">2年</option>
+                                    <option value="3">3年</option>
+                                    <option value="4">4年</option>
+                                    <option value="OB">OB・OG</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">プロフィールアイコン（絵文字または画像URL）</label>
+                            <div class="flex gap-2 mb-2">
+                                <button type="button" onclick="window.setPresetIcon('⛳')" class="px-2.5 py-1 text-sm bg-slate-100 hover:bg-slate-200 rounded border border-slate-300 cursor-pointer">⛳</button>
+                                <button type="button" onclick="window.setPresetIcon('🏌️‍♂️')" class="px-2.5 py-1 text-sm bg-slate-100 hover:bg-slate-200 rounded border border-slate-300 cursor-pointer">🏌️‍♂️</button>
+                                <button type="button" onclick="window.setPresetIcon('🏌️‍♀️')" class="px-2.5 py-1 text-sm bg-slate-100 hover:bg-slate-200 rounded border border-slate-300 cursor-pointer">🏌️‍♀️</button>
+                                <button type="button" onclick="window.setPresetIcon('🏆')" class="px-2.5 py-1 text-sm bg-slate-100 hover:bg-slate-200 rounded border border-slate-300 cursor-pointer">🏆</button>
+                                <button type="button" onclick="window.setPresetIcon('🚩')" class="px-2.5 py-1 text-sm bg-slate-100 hover:bg-slate-200 rounded border border-slate-300 cursor-pointer">🚩</button>
+                                <button type="button" onclick="window.setPresetIcon('👑')" class="px-2.5 py-1 text-sm bg-slate-100 hover:bg-slate-200 rounded border border-slate-300 cursor-pointer">👑</button>
+                            </div>
+                            <input type="text" id="mypage-input-photo" placeholder="絵文字または画像URL" class="w-full text-sm border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">メールアドレス（変更不可）</label>
+                            <input type="email" id="mypage-input-email" readonly class="w-full text-sm bg-slate-100 text-slate-500 border border-slate-200 rounded-lg p-2.5 cursor-not-allowed">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">自己紹介 / 今季目標スコア (任意)</label>
+                            <textarea id="mypage-input-bio" rows="3" class="w-full text-sm border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500"></textarea>
+                        </div>
+
+                        <div class="pt-2 flex justify-end">
+                            <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-6 py-2.5 rounded-xl shadow transition flex items-center gap-2 cursor-pointer">
+                                💾 プロフィールを保存
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 7: ADMIN PAGE -->
+        <section id="sec-admin" class="hidden space-y-6">
+            <div>
+                <h2 class="text-xl font-bold text-slate-800">🔒 システム管理者コンソール</h2>
+                <p class="text-xs text-slate-500">管理権限でシーズンの新設・更新および自動昇降格処理を行います</p>
+            </div>
+
+            <!-- ADMIN AUTH FORM -->
+            <div id="admin-auth-container" class="glass-card p-8 rounded-2xl max-w-md mx-auto text-center space-y-4 shadow-sm">
+                <div class="text-4xl">🔐</div>
+                <h3 class="font-bold text-lg text-slate-800">管理者パスワードが必要です</h3>
+                <p class="text-xs text-slate-500">操作を進めるには管理者パスワードを入力してください。</p>
+                <form id="form-admin-pass" class="space-y-3">
+                    <input type="password" id="admin-pass-input" placeholder="パスワードを入力" required class="w-full text-sm border border-slate-300 rounded-lg p-2.5 text-center focus:ring-2 focus:ring-emerald-500">
+                    <button type="submit" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs py-2.5 rounded-lg shadow transition cursor-pointer">
+                        認証して管理者パネルを開く
+                    </button>
+                </form>
+            </div>
+
+            <!-- ADMIN CONTROL PANEL -->
+            <div id="admin-panel" class="hidden glass-card p-6 rounded-2xl shadow-sm space-y-6 border-t-4 border-amber-500">
+                <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="text-lg">⚙️</span>
+                        <h3 class="font-bold text-base text-slate-800">シーズン更新＆自動昇降格・レートリセット</h3>
+                    </div>
+                    <span class="text-xs bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full font-bold">認証済み</span>
+                </div>
+
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-900 space-y-2">
+                    <p class="font-bold text-sm">⚠️ シーズン更新時の動作について</p>
+                    <ul class="list-disc list-inside space-y-1 text-amber-800">
+                        <li>**season 1 終了時**: 全員の最終順位に基づき、1〜15位はDiv1へ、16〜35位はDiv2へ、それ以下はDiv3へ自動振り分けされます。</li>
+                        <li>**season 2 以降**: 各Divの上位4名が上のDivへ昇格、下位4名が下のDivへ降格します。</li>
+                        <li>全員のレートは新シーズン開始時に自動で 3000 にリセットされます。過去のスコアや通算データは保持されます。</li>
+                    </ul>
+                </div>
+
+                <div class="bg-slate-50 p-4 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <p class="text-xs font-bold text-slate-500">現在のシステム状態</p>
+                        <p class="text-xl font-black text-emerald-800 mt-0.5" id="admin-current-season-text">season 1 実行中</p>
+                    </div>
+                    <button type="button" onclick="window.createNewSeason()" class="bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs px-5 py-3 rounded-xl shadow transition flex items-center gap-2 cursor-pointer">
+                        🔄 シーズンを終了し昇降格＆新シーズン開始
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-slate-800 text-slate-400 text-xs py-6 mt-12 border-t border-slate-700">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4 text-center md:text-left">
+            <div>
+                <p class="font-bold text-slate-200">一橋大学体育会ゴルフ部 Rate System (順位期待値モデル)</p>
+                <p class="text-[11px] mt-0.5">Realtime Cloud DB: Firebase Cloud Firestore Connected (3-Tier League System)</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- MODAL 1: LOGIN / REGISTER MODAL -->
+    <div id="modal-login" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden transition-all">
+            <div class="bg-emerald-900 px-6 py-4 text-white flex justify-between items-center">
+                <h3 id="auth-modal-title" class="font-bold text-base flex items-center gap-2">🔑 アカウントログイン</h3>
+                <button type="button" onclick="window.closeModal('modal-login')" class="text-emerald-200 hover:text-white font-bold cursor-pointer">✖</button>
+            </div>
+            <form id="form-auth" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">氏名（部員名） ※新規登録時のみ</label>
+                    <input type="text" id="auth-name" class="w-full text-sm border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500" placeholder="例: 山田成彰">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">学年 ※新規登録時のみ</label>
+                    <select id="auth-grade" class="w-full text-sm border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500">
+                        <option value="1">1年</option>
+                        <option value="2" selected>2年</option>
+                        <option value="3">3年</option>
+                        <option value="4">4年</option>
+                        <option value="OB">OB・OG</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">性別 ※新規登録時のみ</label>
+                    <select id="auth-gender" class="w-full text-sm border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500">
+                        <option value="男" selected>男</option>
+                        <option value="女">女</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">メールアドレス</label>
+                    <input type="email" id="auth-email" required class="w-full text-sm border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500" placeholder="example@hitotsubashi.ac.jp">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">パスワード</label>
+                    <input type="password" id="auth-password" required minlength="6" class="w-full text-sm border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500" placeholder="6文字以上">
+                </div>
+
+                <div class="flex items-center justify-between pt-2">
+                    <button type="button" onclick="window.toggleAuthMode()" id="auth-toggle-btn" class="text-xs text-emerald-600 hover:underline cursor-pointer">
+                        新規登録はこちら
+                    </button>
+                    <div class="flex gap-2">
+                        <button type="button" onclick="window.closeModal('modal-login')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer">キャンセル</button>
+                        <button type="submit" id="auth-submit-btn" class="px-4 py-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow cursor-pointer">ログイン</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: ADD SCORE MODAL (手入力 ＆ AI一括解析・編集・一括登録) -->
+    <div id="modal-score" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="mobile-score-backdrop" aria-hidden="true"></div>
+        <div class="bg-white rounded-2xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto mobile-score-sheet">
+            <div class="mobile-sheet-grab" aria-hidden="true"></div>
+            <div class="bg-emerald-900 px-6 py-4 text-white flex justify-between items-center sticky top-0 z-10">
+                <h3 class="font-bold text-base flex items-center gap-2">⛳ ラウンドスコア登録（手入力 ＆ AI一括読み取り）</h3>
+                <button type="button" onclick="window.closeModal('modal-score')" class="text-emerald-200 hover:text-white font-bold cursor-pointer text-lg">✖</button>
+            </div>
+
+            <div class="p-6 space-y-6">
+                <!-- AI一括読み取りセクション -->
+                <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 space-y-3">
+                    <h4 class="font-bold text-xs text-emerald-900 uppercase flex items-center gap-1.5">
+                        <span>✨ 複数人スコア一括AI解析 (Gemini Vision)</span>
+                    </h4>
+                    <p class="text-[11px] text-emerald-700">スコアカードや成績一覧表の画像を選択して解析ボタンを押すと、全員分のデータが下のテーブルに抽出され、自由に編集・一括登録できます。</p>
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                        <input type="file" id="score-image-file" accept="image/*" class="text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-750 cursor-pointer w-full bg-white border border-emerald-200 rounded-lg p-1">
+                        <button type="button" id="btn-analyze-image" onclick="window.analyzeMultipleScoresImage()" class="bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs px-5 py-2.5 rounded-lg shadow whitespace-nowrap cursor-pointer transition flex items-center justify-center gap-1.5">
+                            <span id="analyze-btn-text">🚀 画像を一括解析する</span>
+                        </button>
+                    </div>
+
+                    <!-- 解析結果プレビュー＆編集エリア -->
+                    <div id="ai-preview-section" class="hidden pt-3 border-t border-emerald-200 space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-bold text-emerald-900">📋 解析結果プレビュー（内容を直接編集できます）</span>
+                            <span id="ai-parsed-count" class="text-xs bg-emerald-200 text-emerald-900 font-bold px-2 py-0.5 rounded">0名検出</span>
+                        </div>
+                        
+                        <!-- 共通のゴルフ場名・プレー日設定 -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white p-3 rounded-lg border border-emerald-200">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">共通ゴルフ場名（一括適用）</label>
+                                <input type="text" id="ai-common-course" placeholder="例: 芳賀カントリークラブ" class="w-full text-xs border border-slate-300 rounded p-1.5 focus:ring-1 focus:ring-emerald-500">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">共通プレー日</label>
+                                <input type="date" id="ai-common-date" class="w-full text-xs border border-slate-300 rounded p-1.5 focus:ring-1 focus:ring-emerald-500">
+                            </div>
+                        </div>
+
+                        <div class="border border-emerald-200 rounded-lg overflow-hidden bg-white">
+                            <div class="max-h-56 overflow-y-auto">
+                                <table class="w-full text-left border-collapse text-xs">
+                                    <thead class="bg-emerald-900 text-white sticky top-0">
+                                        <tr>
+                                            <th class="py-2 px-3">選手名 (スペースなし)</th>
+                                            <th class="py-2 px-3 text-center w-16">OUT</th>
+                                            <th class="py-2 px-3 text-center w-16">IN</th>
+                                            <th class="py-2 px-3 text-center w-16">TOTAL</th>
+                                            <th class="py-2 px-3 text-center w-16">パット</th>
+                                            <th class="py-2 px-3 text-right w-16">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ai-preview-tbody" class="divide-y divide-emerald-100">
+                                        <!-- 動的に挿入 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end pt-1">
+                            <button type="button" onclick="window.saveBatchScoresFromAI()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-6 py-2.5 rounded-lg shadow-md cursor-pointer flex items-center gap-1.5">
+                                💾 編集内容を確認して全員分を一括登録する
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="relative flex py-2 items-center">
+                    <div class="flex-grow border-t border-slate-200"></div>
+                    <span class="flex-shrink mx-4 text-slate-400 text-xs font-bold uppercase">または従来の手動登録</span>
+                    <div class="flex-grow border-t border-slate-200"></div>
+                </div>
+
+                <!-- 従来の手入力フォーム -->
+                <form id="form-score" class="space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="relative">
+                            <label class="block text-xs font-bold text-slate-700 mb-1">部員（プレイヤー）検索</label>
+                            <input type="text" id="score-member-search" placeholder="名前を入力して検索" oninput="window.filterScoreMembers()" class="w-full text-sm border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500 bg-white">
+                            <input type="hidden" id="score-member-select">
+                            <!-- 検索結果ドロップダウン -->
+                            <div id="score-member-dropdown" class="absolute z-30 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-48 overflow-y-auto hidden"></div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">プレー日</label>
+                            <input type="date" id="score-date" required class="w-full text-sm border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">ゴルフ場名</label>
+                        <input type="text" id="score-course" placeholder="例: 東京ゴルフ倶楽部" required class="w-full text-sm border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500">
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">OUT スコア</label>
+                            <input type="number" id="score-out" inputmode="numeric" min="18" max="99" required oninput="window.calcTotalScore()" class="w-full text-sm border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">IN スコア</label>
+                            <input type="number" id="score-in" inputmode="numeric" min="18" max="99" required oninput="window.calcTotalScore()" class="w-full text-sm border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">TOTAL (自動計算)</label>
+                            <input type="number" id="score-total" inputmode="numeric" readonly class="w-full text-sm font-bold bg-slate-100 border border-slate-300 rounded-lg p-2.5 text-emerald-700">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">パット数 (任意)</label>
+                            <input type="number" id="score-putts" inputmode="numeric" placeholder="36" class="w-full text-sm border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">ラウンド種別</label>
+                            <select id="score-type" class="w-full text-sm border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500">
+                                <option value="公式戦">公式戦 / リーグ戦</option>
+                                <option value="部内合宿">部内合宿 / 月例会</option>
+                                <option value="プライベート">プライベートラウンド</option>
+                            </select>
+                            <div class="mobile-score-type-options">
+                                <label><input type="radio" name="score-type-mobile" value="公式戦" checked><span>公式戦・リーグ戦</span></label>
+                                <label><input type="radio" name="score-type-mobile" value="部内合宿"><span>部内合宿・月例会</span></label>
+                                <label><input type="radio" name="score-type-mobile" value="プライベート"><span>プライベートラウンド</span></label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mobile-score-actions flex justify-end gap-2 pt-2 border-t border-slate-100">
+                        <button type="button" onclick="window.closeModal('modal-score')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer">キャンセル</button>
+                        <button type="submit" class="px-4 py-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow cursor-pointer">保存する</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: MEMBER DETAIL MODAL -->
+    <div id="modal-member-detail" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="bg-emerald-900 px-6 py-4 text-white flex justify-between items-center sticky top-0 z-10">
+                <h3 class="font-bold text-base flex items-center gap-2">👤 部員詳細スタッツ</h3>
+                <button type="button" onclick="window.closeModal('modal-member-detail')" class="text-emerald-200 hover:text-white font-bold cursor-pointer text-lg">✖</button>
+            </div>
+            
+            <div class="p-6 space-y-6">
+                <!-- Header Info -->
+                <div class="flex flex-col sm:flex-row items-center sm:items-start gap-4 pb-6 border-b border-slate-100">
+                    <div id="detail-member-avatar" class="w-20 h-20 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center font-bold text-3xl shadow-inner shrink-0 overflow-hidden">
+                        ⛳
+                    </div>
+                    <div class="text-center sm:text-left space-y-1">
+                        <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                            <h2 class="text-2xl font-bold text-slate-800" id="detail-member-name">--</h2>
+                            <span class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2.5 py-1 rounded" id="detail-member-grade">--年</span>
+                            <span id="detail-member-div"></span>
+                        </div>
+                        <div class="pt-1" id="detail-member-badge"></div>
+                        <p class="text-xs text-slate-500 italic pt-1" id="detail-member-bio"></p>
+                    </div>
+                </div>
+
+                <!-- Main Stats Cards Grid -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div class="bg-emerald-50/80 p-3 rounded-xl border border-emerald-100 text-center">
+                        <span class="text-[10px] font-bold text-emerald-800 uppercase block">レート</span>
+                        <span class="text-xl font-extrabold text-emerald-800" id="detail-stat-rate">3000</span>
+                    </div>
+                    <div class="bg-amber-50/80 p-3 rounded-xl border border-amber-100 text-center">
+                        <span class="text-[10px] font-bold text-amber-800 uppercase block">通算HDCP</span>
+                        <span class="text-xl font-extrabold text-amber-900" id="detail-stat-hdcp">--</span>
+                    </div>
+                    <div class="bg-blue-50/80 p-3 rounded-xl border border-blue-100 text-center">
+                        <span class="text-[10px] font-bold text-blue-800 uppercase block">通算平均スコア</span>
+                        <span class="text-xl font-extrabold text-blue-900" id="detail-stat-avg">--</span>
+                    </div>
+                    <div class="bg-purple-50/80 p-3 rounded-xl border border-purple-100 text-center">
+                        <span class="text-[10px] font-bold text-purple-800 uppercase block">ベストスコア</span>
+                        <span class="text-xl font-extrabold text-purple-900" id="detail-stat-best">--</span>
+                    </div>
+                </div>
+
+                <!-- Recent Score History Table -->
+                <div class="space-y-2">
+                    <h4 class="font-bold text-sm text-slate-800 flex items-center justify-between">
+                        <span>⛳ 直近提出スコア履歴</span>
+                        <span class="text-xs font-normal text-slate-500" id="detail-rounds-count">通算 0 回</span>
+                    </h4>
+                    <div class="border border-slate-200 rounded-xl overflow-hidden">
+                        <div class="max-h-60 overflow-y-auto">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead class="bg-slate-100 text-slate-600 font-semibold sticky top-0">
+                                    <tr>
+                                        <th class="py-2.5 px-3">日付</th>
+                                        <th class="py-2.5 px-3">ゴルフ場名</th>
+                                        <th class="py-2.5 px-3 text-center">OUT</th>
+                                        <th class="py-2.5 px-3 text-center">IN</th>
+                                        <th class="py-2.5 px-3 text-center">TOTAL</th>
+                                        <th class="py-2.5 px-3 text-center">パット</th>
+                                        <th class="py-2.5 px-3 text-center">種別</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="detail-scores-tbody" class="divide-y divide-slate-100">
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-slate-50 px-6 py-3 border-t border-slate-100 flex justify-end">
+                <button type="button" onclick="window.closeModal('modal-member-detail')" class="px-5 py-2 text-xs font-bold bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg cursor-pointer">
+                    閉じる
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- MOBILE DRAWER / NAVIGATION (displayed only at <=768px) -->
+    <div id="mobile-drawer-scrim" class="mobile-drawer-scrim" aria-hidden="true"></div>
+    <aside id="mobile-drawer" class="mobile-drawer" aria-label="メニュー" aria-hidden="true">
+        <div class="mobile-drawer-top">
+            <div class="mobile-drawer-user-icon" id="mobile-drawer-avatar">👤</div>
+            <div class="mobile-drawer-user-copy">
+                <strong id="mobile-drawer-name">ログインしていません</strong>
+                <small id="mobile-drawer-meta">ログインするとプロフィールを表示します</small>
+            </div>
+            <button type="button" id="mobile-drawer-close" class="mobile-drawer-close" aria-label="メニューを閉じる">✕</button>
+        </div>
+        <div id="mobile-drawer-auth" class="mobile-drawer-auth">
+            <button type="button" onclick="window.closeMobileDrawer();window.openLoginModal()">🔑 ログイン / 新規登録</button>
+        </div>
+        <div class="mobile-drawer-section-title">その他の機能</div>
+        <button type="button" class="mobile-drawer-link" onclick="window.switchTab('daily');window.closeMobileDrawer()">📅 日別ラウンド戦績</button>
+        <button type="button" class="mobile-drawer-link" onclick="window.switchTab('analytics');window.closeMobileDrawer()">📊 戦績アナリティクス</button>
+        <button type="button" class="mobile-drawer-link" onclick="window.switchTab('admin');window.closeMobileDrawer()">🔒 管理者</button>
+        <div class="mobile-drawer-section-title">アカウント</div>
+        <button type="button" id="mobile-drawer-logout" class="mobile-drawer-link mobile-drawer-logout" onclick="window.handleLogout();window.closeMobileDrawer()">🚪 ログアウト</button>
+    </aside>
+
+    <nav id="mobile-tabbar" class="mobile-tabbar" aria-label="メインメニュー">
+        <button type="button" data-mobile-tab="dashboard" class="active" onclick="window.switchTab('dashboard')"><span>📈</span><b>順位</b></button>
+        <button type="button" data-mobile-tab="scores" onclick="window.switchTab('scores')"><span>⛳</span><b>スコア</b></button>
+        <button type="button" data-mobile-tab="members" onclick="window.switchTab('members')"><span>👥</span><b>部員</b></button>
+        <button type="button" data-mobile-tab="mypage" onclick="window.switchTab('mypage')"><span>👤</span><b>マイページ</b></button>
+    </nav>
+    <button type="button" id="mobile-score-fab" class="mobile-score-fab" onclick="window.openAddScoreModal()">＋ スコア登録</button>
+
+    <!-- JS SCRIPT -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
+        import { 
+            getAuth, 
+            createUserWithEmailAndPassword, 
+            signInWithEmailAndPassword, 
+            signOut, 
+            onAuthStateChanged 
+        } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+        import { 
+            getFirestore, 
+            collection, 
+            addDoc, 
+            deleteDoc, 
+            doc, 
+            setDoc,
+            updateDoc,
+            onSnapshot, 
+            query, 
+            orderBy, 
+            serverTimestamp 
+        } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+        // ▼▼▼ ここにご自身のGemini APIキーを入力してください ▼▼▼
+        const GEMINI_API_KEY = "AQ.Ab8RN6LsgFSyo3cyAfg72kohvVVRVGl4YUImpEgHy2nXOXvdHw";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDljx3xZuZa8E_BqMNqKeR_CQQw96DICFQ",
+            authDomain: "hitgolf27.firebaseapp.com",
+            projectId: "hitgolf27",
+            storageBucket: "hitgolf27.firebasestorage.app",
+            messagingSenderId: "700298467823",
+            appId: "1:700298467823:web:e4e581c8b92dd5bb107e1a",
+            measurementId: "G-CXH3D2PRF1"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let membersData = [];
+        let scoresData = [];
+        let systemSettings = { currentSeason: 1, disabledDates: [] };
+        let scoreModalScrollLock = null;
+        let scoreModalCloseTimer = null;
+
+        function lockMobileScorePageScroll() {
+            if (!window.matchMedia('(max-width: 768px)').matches || scoreModalScrollLock) return;
+            const body = document.body;
+            const scrollY = window.scrollY || window.pageYOffset || 0;
+            scoreModalScrollLock = { scrollY, bodyStyle: body.getAttribute('style') };
+            body.style.position = 'fixed';
+            body.style.top = `-${scrollY}px`;
+            body.style.left = '0';
+            body.style.right = '0';
+            body.style.width = '100%';
+            body.style.overflow = 'hidden';
+        }
+
+        function restoreMobileScorePageScroll() {
+            if (!scoreModalScrollLock) return;
+            const saved = scoreModalScrollLock;
+            scoreModalScrollLock = null;
+            if (saved.bodyStyle === null) document.body.removeAttribute('style');
+            else document.body.setAttribute('style', saved.bodyStyle);
+            requestAnimationFrame(() => window.scrollTo(0, saved.scrollY));
+        }
+
+        let mobileScoreViewportFrame = 0;
+        function updateMobileScoreViewportHeight() {
+            if (!window.matchMedia('(max-width: 768px)').matches || mobileScoreViewportFrame) return;
+            mobileScoreViewportFrame = requestAnimationFrame(() => {
+                mobileScoreViewportFrame = 0;
+                const modal = document.getElementById('modal-score');
+                const sheet = modal && modal.querySelector('.mobile-score-sheet');
+                if (!sheet || modal.classList.contains('hidden')) return;
+                const viewport = window.visualViewport;
+                const keyboardIsOpen = Boolean(viewport && viewport.height < window.innerHeight - 150);
+                if (keyboardIsOpen) {
+                    sheet.style.maxHeight = `${Math.max(180, Math.floor(viewport.height * 0.9))}px`;
+                } else {
+                    sheet.style.removeProperty('max-height');
+                }
+            });
+        }
+        let lastSeason = null;
+        let isRegisterMode = false;
+        let currentUserUid = null;
+        let isAdminAuthenticated = false;
+        let currentDivFilter = 'all';
+
+        let chartDistInstance = null;
+        let chartGradeHdcpInstance = null;
+
+        function getRankBadge(rating) {
+            if (rating >= 3800) {
+                return `<span class="bg-purple-900 text-purple-100 border border-purple-500 text-[11px] font-bold px-2.5 py-0.5 rounded-full shadow-sm">🔱 Grandmaster</span>`;
+            } else if (rating >= 3500) {
+                return `<span class="bg-indigo-700 text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full shadow-sm">💎 Master</span>`;
+            } else if (rating >= 3200) {
+                return `<span class="bg-cyan-600 text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full shadow-sm">🔷 Diamond</span>`;
+            } else if (rating >= 2800) {
+                return `<span class="bg-rose-600 text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full shadow-sm">♦️ Ruby</span>`;
+            } else if (rating >= 2500) {
+                return `<span class="bg-emerald-600 text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full shadow-sm">❇️ Platinum</span>`;
+            } else if (rating >= 2200) {
+                return `<span class="bg-amber-500 text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full shadow-sm">🏆 Gold</span>`;
+            } else {
+                return `<span class="bg-slate-600 text-slate-100 text-[11px] font-bold px-2.5 py-0.5 rounded-full shadow-sm">⚔️ Iron</span>`;
+            }
+        }
+
+        function getDivBadge(div) {
+            if (div === '1') return `<span class="bg-amber-500 text-white text-[11px] font-bold px-2 py-0.5 rounded shadow-sm">Division 1</span>`;
+            if (div === '2') return `<span class="bg-slate-500 text-white text-[11px] font-bold px-2 py-0.5 rounded shadow-sm">Division 2</span>`;
+            return `<span class="bg-emerald-700 text-white text-[11px] font-bold px-2 py-0.5 rounded shadow-sm">Division 3</span>`;
+        }
+        function compareMembers(a, b) {
+    // シーズン中にレート適用ラウンドが0回の人は常に最下位
+    const aActive = a.rateCount > 0;
+    const bActive = b.rateCount > 0;
+    if (aActive !== bActive) return aActive ? -1 : 1;
+
+    // レート
+    if (b.rating !== a.rating) return b.rating - a.rating;
+    // 第1優先: 当シーズンのレート適用ラウンド数
+    if (b.rateCount !== a.rateCount) return b.rateCount - a.rateCount;
+    // 第2優先: 当シーズンのHDCP（低いほど上位。未確定は下）
+    if (a.hdcpNum !== b.hdcpNum) return a.hdcpNum - b.hdcpNum;
+    // 第3優先: 前シーズンのレート適用ラウンド数
+    return b.prevRateCount - a.prevRateCount;
+}
+        function updateMobileDrawerProfile() {
+            const nameEl = document.getElementById('mobile-drawer-name');
+            const metaEl = document.getElementById('mobile-drawer-meta');
+            const avatarEl = document.getElementById('mobile-drawer-avatar');
+            const authEl = document.getElementById('mobile-drawer-auth');
+            const logoutEl = document.getElementById('mobile-drawer-logout');
+            const member = currentUserUid ? membersData.find(m => m.id === currentUserUid) : null;
+            if (currentUserUid) {
+                nameEl.textContent = member ? member.name : 'ログイン中';
+                metaEl.textContent = member ? `${member.grade === 'OB' ? 'OB・OG' : `${member.grade}年`} ・ Division ${member.division || '3'}` : 'プロフィールを読み込み中';
+                avatarEl.textContent = member && member.photoUrl && !member.photoUrl.startsWith('http') ? member.photoUrl : (member?.name?.charAt(0) || '👤');
+                authEl.style.display = 'none';
+                logoutEl.style.display = 'block';
+            } else {
+                nameEl.textContent = 'ログインしていません';
+                metaEl.textContent = 'ログインするとプロフィールを表示します';
+                avatarEl.textContent = '👤';
+                authEl.style.display = 'block';
+                logoutEl.style.display = 'none';
+            }
+        }
+
+        window.openMobileDrawer = () => {
+            document.getElementById('mobile-drawer').classList.add('open');
+            document.getElementById('mobile-drawer-scrim').classList.add('open');
+            document.getElementById('mobile-drawer').setAttribute('aria-hidden', 'false');
+            document.getElementById('mobile-menu-button').setAttribute('aria-expanded', 'true');
+        };
+        window.closeMobileDrawer = () => {
+            document.getElementById('mobile-drawer').classList.remove('open');
+            document.getElementById('mobile-drawer-scrim').classList.remove('open');
+            document.getElementById('mobile-drawer').setAttribute('aria-hidden', 'true');
+            document.getElementById('mobile-menu-button').setAttribute('aria-expanded', 'false');
+        };
+
+        window.showToast = function(msg) {
+            const toast = document.getElementById('toast-banner');
+            document.getElementById('toast-message').innerText = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => { toast.classList.add('hidden'); }, 4000);
+        };
+        window.hideToast = () => document.getElementById('toast-banner').classList.add('hidden');
+
+        window.setPresetIcon = (iconStr) => {
+            document.getElementById('mypage-input-photo').value = iconStr;
+        };
+
+        window.openLoginModal = () => document.getElementById('modal-login').classList.remove('hidden');
+        window.openAddScoreModal = () => {
+            populateMemberSelects();
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            const todayStr = `${yyyy}-${mm}-${dd}`;
+            document.getElementById('score-date').value = todayStr;
+            document.getElementById('ai-common-date').value = todayStr;
+            
+            document.getElementById('ai-preview-section').classList.add('hidden');
+            document.getElementById('score-image-file').value = '';
+
+            if (scoreModalCloseTimer) {
+                clearTimeout(scoreModalCloseTimer);
+                scoreModalCloseTimer = null;
+            }
+            const scoreModal = document.getElementById('modal-score');
+            const scoreSheet = scoreModal.querySelector('.mobile-score-sheet');
+            scoreModal.classList.remove('closing', 'sheet-open', 'sheet-entering');
+            scoreSheet.style.removeProperty('max-height');
+            scoreSheet.style.removeProperty('transform');
+            scoreSheet.style.removeProperty('transition');
+            lockMobileScorePageScroll();
+            scoreModal.classList.remove('hidden');
+            if (window.matchMedia('(max-width: 768px)').matches) {
+                scoreModal.classList.add('sheet-entering');
+                void scoreSheet.offsetHeight;
+                requestAnimationFrame(() => {
+                    if (!scoreModal.classList.contains('hidden') && !scoreModal.classList.contains('closing')) {
+                        scoreModal.classList.add('sheet-open');
+                        updateMobileScoreViewportHeight();
+                    }
+                });
+            }
+        };
+        window.closeModal = (id) => {
+            const modal = document.getElementById(id);
+            if (!modal) return;
+            if (id !== 'modal-score') {
+                modal.classList.add('hidden');
+                return;
+            }
+
+            const shouldAnimate = Boolean(scoreModalScrollLock) || window.matchMedia('(max-width: 768px)').matches;
+            if (scoreModalCloseTimer) {
+                clearTimeout(scoreModalCloseTimer);
+                scoreModalCloseTimer = null;
+            }
+            if (modal.classList.contains('hidden')) {
+                modal.classList.remove('closing', 'sheet-open', 'sheet-entering');
+                modal.querySelector('.mobile-score-sheet')?.style.removeProperty('max-height');
+                modal.querySelector('.mobile-score-sheet')?.style.removeProperty('transform');
+                modal.querySelector('.mobile-score-sheet')?.style.removeProperty('transition');
+                restoreMobileScorePageScroll();
+                return;
+            }
+            if (shouldAnimate) {
+                const scoreSheet = modal.querySelector('.mobile-score-sheet');
+                scoreSheet?.style.removeProperty('transform');
+                scoreSheet?.style.removeProperty('transition');
+                modal.classList.remove('sheet-entering', 'sheet-open');
+                modal.classList.add('closing');
+                scoreModalCloseTimer = setTimeout(() => {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('closing', 'sheet-open', 'sheet-entering');
+                    modal.querySelector('.mobile-score-sheet')?.style.removeProperty('max-height');
+                    modal.querySelector('.mobile-score-sheet')?.style.removeProperty('transform');
+                    modal.querySelector('.mobile-score-sheet')?.style.removeProperty('transition');
+                    scoreModalCloseTimer = null;
+                    restoreMobileScorePageScroll();
+                }, 250);
+            } else {
+                modal.classList.add('hidden');
+                modal.classList.remove('sheet-open', 'sheet-entering');
+                modal.querySelector('.mobile-score-sheet')?.style.removeProperty('max-height');
+                modal.querySelector('.mobile-score-sheet')?.style.removeProperty('transform');
+                modal.querySelector('.mobile-score-sheet')?.style.removeProperty('transition');
+                restoreMobileScorePageScroll();
+            }
+        };
+
+        window.switchTab = (tabName) => {
+            ['dashboard', 'scores', 'daily', 'members', 'analytics', 'mypage', 'admin'].forEach(t => {
+                const sec = document.getElementById(`sec-${t}`);
+                const btn = document.getElementById(`tab-${t}`);
+                if (t === tabName) {
+                    sec.classList.remove('hidden');
+                    btn.classList.add('text-amber-400', 'border-b-2', 'border-amber-400', 'font-bold');
+                    btn.classList.remove('text-emerald-300');
+                } else {
+                    sec.classList.add('hidden');
+                    btn.classList.remove('text-amber-400', 'border-b-2', 'border-amber-400', 'font-bold');
+                    btn.classList.add('text-emerald-300');
+                }
+            });
+
+            document.querySelectorAll('#mobile-tabbar [data-mobile-tab]').forEach(button => {
+                button.classList.toggle('active', button.dataset.mobileTab === tabName);
+            });
+
+            if (tabName === 'analytics') {
+                renderChartsAndHdcpTable();
+            } else if (tabName === 'daily') {
+                window.renderDailyTab();
+            } else if (tabName === 'mypage') {
+                renderMyPage();
+            } else if (tabName === 'members') {
+                window.renderMembersGrid();
+            }
+        };
+
+        window.setDivFilter = (div) => {
+            currentDivFilter = div;
+            ['all', '1', '2', '3'].forEach(d => {
+                const btn = document.getElementById(`div-btn-${d}`);
+                if (d === div) {
+                    btn.className = "px-3 py-1 rounded-md bg-white text-emerald-800 shadow-sm cursor-pointer";
+                } else {
+                    btn.className = "px-3 py-1 rounded-md text-slate-600 hover:text-slate-800 cursor-pointer";
+                }
+            });
+            window.renderLeaderboard();
+        };
+
+        window.toggleAuthMode = () => {
+            isRegisterMode = !isRegisterMode;
+            const titleEl = document.getElementById('auth-modal-title');
+            const submitBtn = document.getElementById('auth-submit-btn');
+            const toggleBtn = document.getElementById('auth-toggle-btn');
+            const nameInput = document.getElementById('auth-name');
+            const gradeSelect = document.getElementById('auth-grade');
+            const genderSelect = document.getElementById('auth-gender');
+
+            if (isRegisterMode) {
+                titleEl.innerText = '🔑 新規アカウント＆部員登録';
+                submitBtn.innerText = '新規登録';
+                toggleBtn.innerText = 'ログインはこちら';
+                nameInput.parentElement.style.display = 'block';
+                gradeSelect.parentElement.style.display = 'block';
+                genderSelect.parentElement.style.display = 'block';
+                nameInput.required = true;
+            } else {
+                titleEl.innerText = '🔑 アカウントログイン';
+                submitBtn.innerText = 'ログイン';
+                toggleBtn.innerText = '新規登録はこちら';
+                nameInput.parentElement.style.display = 'none';
+                gradeSelect.parentElement.style.display = 'none';
+                genderSelect.parentElement.style.display = 'none';
+                nameInput.required = false;
+            }
+        };
+
+        document.getElementById('auth-name').parentElement.style.display = 'none';
+        document.getElementById('auth-grade').parentElement.style.display = 'none';
+        document.getElementById('auth-gender').parentElement.style.display = 'none';
+
+        document.getElementById('form-admin-pass').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const pass = document.getElementById('admin-pass-input').value;
+            if (pass === 'hitgolf4027') {
+                isAdminAuthenticated = true;
+                document.getElementById('admin-auth-container').classList.add('hidden');
+                document.getElementById('admin-panel').classList.remove('hidden');
+                window.showToast("管理者権限が認証されました");
+            } else {
+                alert("パスワードが違います");
+            }
+        });
+
+        window.createNewSeason = async () => {
+            if (!isAdminAuthenticated) return;
+            const curr = systemSettings.currentSeason || 1;
+            const nextSeason = curr + 1;
+            
+            if (confirm(`本当にシーズンを更新しますか？\nシーズン ${curr} の成績に基づいて自動昇降格処理を行い、「season ${nextSeason}」を開始します。\n（※全員のレートは新シーズンで3000にリセットされます）`)) {
+                try {
+                    const { processedMembers } = calculateEloAndStats(curr.toString(), 'all');
+                    
+                    if (curr === 1) {
+                        const sorted = [...processedMembers].sort(compareMembers);
+                        for (let i = 0; i < sorted.length; i++) {
+                            const m = sorted[i];
+                            let newDiv = "3";
+                            if (i < 15) newDiv = "1";
+                            else if (i < 35) newDiv = "2";
+
+                            const history = m.divisionHistory || {};
+                            history[`season_${curr}`] = m.division || "3";
+                            history[`season_${nextSeason}`] = newDiv;
+
+                            await updateDoc(doc(db, "members", m.id), { 
+                                division: newDiv,
+                                divisionHistory: history 
+                            });
+                        }
+                    } else {
+                        const div1 = processedMembers.filter(m => (m.division || "3") === "1").sort(compareMembers);
+                        const div2 = processedMembers.filter(m => (m.division || "3") === "2").sort(compareMembers);
+                        const div3 = processedMembers.filter(m => (m.division || "3") === "3").sort(compareMembers);
+
+                        const div1Demoted = div1.slice(-4);
+                        const div1Remaining = div1.slice(0, div1.length - 4);
+
+                        const div2Promoted = div2.slice(0, 4);
+                        const div2Demoted = div2.slice(-4);
+                        const div2Remaining = div2.slice(4, div2.length - 4);
+
+                        const div3Promoted = div3.slice(0, 4);
+                        const div3Remaining = div3.slice(4);
+
+                        const newDiv1 = [...div1Remaining, ...div2Promoted];
+                        const newDiv2 = [...div1Demoted, ...div2Remaining, ...div3Promoted];
+                        const newDiv3 = [...div2Demoted, ...div3Remaining];
+
+                        const updatePromises = [];
+                        
+                        const applyUpdates = (memberList, newDivVal) => {
+                            for (const m of memberList) {
+                                const history = m.divisionHistory || {};
+                                history[`season_${curr}`] = m.division || "3";
+                                history[`season_${nextSeason}`] = newDivVal;
+
+                                updatePromises.push(updateDoc(doc(db, "members", m.id), { 
+                                    division: newDivVal,
+                                    divisionHistory: history 
+                                }));
+                            }
+                        };
+
+                        applyUpdates(newDiv1, "1");
+                        applyUpdates(newDiv2, "2");
+                        applyUpdates(newDiv3, "3");
+
+                        await Promise.all(updatePromises);
+                    }
+
+                    await setDoc(doc(db, "system", "config"), {
+                        ...systemSettings,
+                        currentSeason: nextSeason,
+                        updatedAt: serverTimestamp()
+                    });
+                    window.showToast(`season ${nextSeason} がスタートし、昇降格処理が完了しました！`);
+                } catch (err) {
+                    alert("シーズン更新エラー: " + err.message);
+                }
+            }
+        };
+
+        // 日別レート適用のON/OFF切り替え
+        window.toggleDateRate = async (date, isEnabled) => {
+            let disabledDates = systemSettings.disabledDates || [];
+            if (!isEnabled) {
+                if (!disabledDates.includes(date)) disabledDates.push(date);
+            } else {
+                disabledDates = disabledDates.filter(d => d !== date);
+            }
+
+            try {
+                await setDoc(doc(db, "system", "config"), {
+                    ...systemSettings,
+                    disabledDates: disabledDates,
+                    updatedAt: serverTimestamp()
+                }, { merge: true });
+                window.showToast(`プレー日 ${date} のレート適用を ${isEnabled ? 'ON' : 'OFF'} にしました`);
+            } catch (err) {
+                alert("設定の保存に失敗しました: " + err.message);
+            }
+        };
+
+        document.getElementById('form-auth').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+
+            try {
+                if (isRegisterMode) {
+                    const name = document.getElementById('auth-name').value.trim().replace(/\s+/g, '');
+                    const grade = document.getElementById('auth-grade').value;
+                    const gender = document.getElementById('auth-gender').value;
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                    const uid = userCredential.user.uid;
+
+                    await setDoc(doc(db, "members", uid), {
+                        name: name || email.split('@')[0],
+                        grade: grade,
+                        gender: gender,
+                        email: email,
+                        bio: "",
+                        photoUrl: "⛳",
+                        division: "3", 
+                        divisionHistory: { "season_1": "3" },
+                        createdAt: serverTimestamp()
+                    });
+                    window.showToast('新規アカウントおよび部員登録が完了しました（Division 3 スタート）');
+                } else {
+                    await signInWithEmailAndPassword(auth, email, password);
+                    window.showToast('ログインしました');
+                }
+                window.closeModal('modal-login');
+            } catch (err) {
+                alert('認証エラー: ' + err.message);
+            }
+        });
+
+        window.handleLogout = async () => {
+            try {
+                await signOut(auth);
+                window.showToast('ログアウトしました');
+            } catch (err) {
+                alert('ログアウトエラー: ' + err.message);
+            }
+        };
+
+        onAuthStateChanged(auth, (user) => {
+            const loginBtn = document.getElementById('header-login-btn');
+            const userInfo = document.getElementById('header-user-info');
+            const emailDisp = document.getElementById('user-email-display');
+            const nameDisp = document.getElementById('user-display-name');
+
+            if (user) {
+                currentUserUid = user.uid;
+                loginBtn.classList.add('hidden');
+                userInfo.classList.remove('hidden');
+                emailDisp.innerText = user.email;
+                const currentMember = membersData.find(m => m.id === user.uid);
+                nameDisp.innerText = currentMember ? `${currentMember.name} 様` : 'ログイン中';
+            } else {
+                currentUserUid = null;
+                loginBtn.classList.remove('hidden');
+                userInfo.classList.add('hidden');
+                emailDisp.innerText = '';
+                nameDisp.innerText = 'ログイン中';
+            }
+            updateMobileDrawerProfile();
+            renderMyPage();
+        });
+
+        function setupRealtimeListeners() {
+            onSnapshot(doc(db, "system", "config"), (docSnap) => {
+                if (docSnap.exists()) {
+                    systemSettings = docSnap.data();
+                    if (!systemSettings.disabledDates) systemSettings.disabledDates = [];
+                } else {
+                    setDoc(doc(db, "system", "config"), { currentSeason: 1, disabledDates: [] });
+                    systemSettings = { currentSeason: 1, disabledDates: [] };
+                }
+                updateSeasonBadgesAndDropdowns();
+                renderAll();
+            });
+
+            onSnapshot(query(collection(db, "members")), (snapshot) => {
+                membersData = snapshot.docs.map(doc => ({ id: doc.id, gender: '男', ...doc.data() }));
+                updateMobileDrawerProfile();
+                renderAll();
+            });
+
+            onSnapshot(query(collection(db, "scores"), orderBy("date", "desc")), (snapshot) => {
+                scoresData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderAll();
+            });
+        }
+
+        function updateSeasonBadgesAndDropdowns() {
+            const curr = systemSettings.currentSeason || 1;
+            const seasonChanged = (lastSeason !== null && lastSeason !== curr);
+            lastSeason = curr;
+
+            document.getElementById('header-current-season-badge').innerText = `season ${curr}`;
+            document.getElementById('admin-current-season-text').innerText = `season ${curr} 実行中`;
+
+            let seasonOptions = `<option value="all">全シーズン通算</option>`;
+            for (let s = 1; s <= curr; s++) {
+                seasonOptions += `<option value="${s}">season ${s}</option>`;
+            }
+
+            ['rank-season-select', 'scores-season-select', 'daily-season-select', 'analytics-season-select'].forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const prevVal = el.value;
+                el.innerHTML = seasonOptions;
+
+                if (seasonChanged || !prevVal) {
+                    el.value = curr.toString();
+                } else if (el.querySelector(`option[value="${prevVal}"]`)) {
+                    el.value = prevVal;
+                } else {
+                    el.value = curr.toString();
+                }
+            });
+        }
+
+        window.calcTotalScore = () => {
+            const outScore = parseInt(document.getElementById('score-out').value) || 0;
+            const inScore = parseInt(document.getElementById('score-in').value) || 0;
+            document.getElementById('score-total').value = outScore + inScore;
+        };
+
+        function populateMemberSelects() {
+            const searchInput = document.getElementById('score-member-search');
+            const hiddenInput = document.getElementById('score-member-select');
+            if (searchInput) searchInput.value = '';
+            if (hiddenInput) hiddenInput.value = '';
+            renderScoreMemberDropdown(membersData);
+        }
+
+        window.filterScoreMembers = () => {
+            const keyword = document.getElementById('score-member-search').value.toLowerCase();
+            const filtered = membersData.filter(m => m.name.toLowerCase().includes(keyword) || m.grade.toString().includes(keyword));
+            renderScoreMemberDropdown(filtered);
+            document.getElementById('score-member-dropdown').classList.remove('hidden');
+        };
+
+        function renderScoreMemberDropdown(list) {
+            const dropdown = document.getElementById('score-member-dropdown');
+            if (!dropdown) return;
+            if (list.length === 0) {
+                dropdown.innerHTML = `<div class="p-2.5 text-xs text-slate-400 text-center">該当する部員がいません</div>`;
+                dropdown.classList.remove('hidden');
+                return;
+            }
+
+            dropdown.innerHTML = list.map(m => `
+                <div onclick="window.selectScoreMember('${m.id}', '${m.name} (${m.grade}年)')" class="p-2.5 text-xs hover:bg-emerald-50 cursor-pointer flex justify-between items-center border-b border-slate-50 last:border-none">
+                    <span class="font-bold text-slate-800">${m.name}</span>
+                    <span class="text-slate-400">${m.grade}年 / Div ${m.division || 3}</span>
+                </div>
+            `).join('');
+        }
+
+        window.selectScoreMember = (id, displayName) => {
+            document.getElementById('score-member-select').value = id;
+            document.getElementById('score-member-search').value = displayName;
+            document.getElementById('score-member-dropdown').classList.add('hidden');
+        };
+
+        // ----------------------------------------------------
+        // 📷 Gemini Vision API (gemini-3.8-flash) による複数人スコア一括解析
+        // ----------------------------------------------------
+        window.analyzeMultipleScoresImage = async () => {
+            const fileInput = document.getElementById('score-image-file');
+            if (!fileInput.files || fileInput.files.length === 0) {
+                alert("解析するスコア画像ファイルを選択してください。");
+                return;
+            }
+
+            if (GEMINI_API_KEY === "YOUR_GEMINI_API_KEY") {
+                alert("Gemini APIキーが設定されていません。コード上部の GEMINI_API_KEY にご自身のキーを入力してください。");
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const analyzeBtn = document.getElementById('btn-analyze-image');
+            const btnText = document.getElementById('analyze-btn-text');
+
+            // ローディング表示に切り替え
+            analyzeBtn.disabled = true;
+            analyzeBtn.classList.add('opacity-70', 'cursor-not-allowed');
+            btnText.innerHTML = `⏳ 画像判定中です...`;
+            window.showToast("✨ 画面判定中です。少々お待ちください...");
+
+            try {
+                const base64Data = await toBase64(file);
+                const base64String = base64Data.split(',')[1];
+
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+                const prompt = `
+                    この画像はゴルフのスコアカードまたは複数人の成績一覧表です。
+                    画像に記載されている全員分の成績を読み取り、以下のJSON配列形式【のみ】で出力してください。マークダウンのコードブロック(\`\`\`json ...)や余計な解説文は一切含めないでください。
+                    ※部員名（name）は必ず姓と名の間などのスペースを一切入れず、スペースなしの連続した文字列として抽出してください（例: "山田成彰"）。
+
+                    [
+                      {
+                        "name": "選手名（スペースなし）",
+                        "course": "ゴルフ場名（画像内から読み取れる場合。不明な場合は空文字）",
+                        "out": OUTスコア（整数）,
+                        "in": INスコア（整数）,
+                        "putts": パット数（整数または null）
+                      }
+                    ]
+                `;
+
+                const requestBody = {
+                    contents: [
+                        {
+                            parts: [
+                                { inlineData: { mimeType: file.type, data: base64String } },
+                                { text: prompt }
+                            ]
+                        }
+                    ]
+                };
+
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const result = await response.json();
+                
+                if (result.error) {
+                    throw new Error(`[API Error ${result.error.code}] ${result.error.message}`);
+                }
+
+                if (!result.candidates || result.candidates.length === 0) {
+                    throw new Error("AIからの応答が取得できませんでした。");
+                }
+
+                let rawText = result.candidates[0].content.parts[0].text.trim();
+                rawText = rawText.replace(/^```json\s*/, "").replace(/^```\s*/, "").replace(/\s*```$/, "");
+
+                const parsedData = JSON.parse(rawText);
+                if (!Array.isArray(parsedData) || parsedData.length === 0) {
+                    throw new Error("有効なスコアデータ配列が検出されませんでした。");
+                }
+
+                // 名前のスペースを確実に削除
+                parsedData.forEach(item => {
+                    if (item.name) {
+                        item.name = item.name.replace(/\s+/g, '');
+                    }
+                });
+
+                const firstCourse = parsedData.find(p => p.course && p.course.trim() !== "")?.course || "";
+                if (firstCourse) {
+                    document.getElementById('ai-common-course').value = firstCourse;
+                }
+
+                renderAiPreviewTable(parsedData);
+                document.getElementById('ai-preview-section').classList.remove('hidden');
+                window.showToast(`✅ ${parsedData.length}名分のスコアを検出しました！`);
+
+            } catch (err) {
+                alert("画像解析エラー: " + err.message);
+                window.hideToast();
+            } finally {
+                // ローディング解除
+                analyzeBtn.disabled = false;
+                analyzeBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+                btnText.innerHTML = `🚀 画像を一括解析する`;
+            }
+        };
+
+        function renderAiPreviewTable(dataList) {
+            const tbody = document.getElementById('ai-preview-tbody');
+            document.getElementById('ai-parsed-count').innerText = `${dataList.length}名検出`;
+
+            tbody.innerHTML = dataList.map((item, index) => {
+                const total = (parseInt(item.out) || 0) + (parseInt(item.in) || 0);
+                return `
+                    <tr class="ai-row hover:bg-slate-50 transition" data-index="${index}">
+                        <td class="py-2 px-3">
+                            <input type="text" class="ai-input-name w-full border border-slate-300 rounded px-2 py-1 font-bold text-slate-800" value="${item.name || ''}" oninput="this.value = this.value.replace(/\\s+/g, '')">
+                        </td>
+                        <td class="py-2 px-3 text-center">
+                            <input type="number" inputmode="numeric" class="ai-input-out w-16 text-center border border-slate-300 rounded px-1 py-1" value="${item.out || 0}" oninput="updateAiRowTotal(this)">
+                        </td>
+                        <td class="py-2 px-3 text-center">
+                            <input type="number" inputmode="numeric" class="ai-input-in w-16 text-center border border-slate-300 rounded px-1 py-1" value="${item.in || 0}" oninput="updateAiRowTotal(this)">
+                        </td>
+                        <td class="py-2 px-3 text-center font-bold text-emerald-700 ai-total-disp">
+                            ${total}
+                        </td>
+                        <td class="py-2 px-3 text-center">
+                            <input type="number" inputmode="numeric" class="ai-input-putts w-16 text-center border border-slate-300 rounded px-1 py-1" value="${item.putts !== null && item.putts !== undefined ? item.putts : ''}">
+                        </td>
+                        <td class="py-2 px-3 text-right">
+                            <button type="button" onclick="this.closest('tr').remove()" class="text-xs text-red-500 hover:text-red-700 px-2 py-1 font-bold cursor-pointer">🗑️ 削除</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        window.updateAiRowTotal = (inputEl) => {
+            const tr = inputEl.closest('tr');
+            const outVal = parseInt(tr.querySelector('.ai-input-out').value) || 0;
+            const inVal = parseInt(tr.querySelector('.ai-input-in').value) || 0;
+            tr.querySelector('.ai-total-disp').innerText = outVal + inVal;
+        };
+
+        window.saveBatchScoresFromAI = async () => {
+            const rows = document.querySelectorAll('.ai-row');
+            if (rows.length === 0) {
+                alert("登録するデータがありません。");
+                return;
+            }
+
+            const commonCourse = document.getElementById('ai-common-course').value.trim();
+            const commonDate = document.getElementById('ai-common-date').value;
+
+            if (!commonCourse) {
+                alert("共通のゴルフ場名を入力してください。");
+                return;
+            }
+            if (!commonDate) {
+                alert("共通のプレー日を選択してください。");
+                return;
+            }
+
+            window.showToast("💾 Firestoreへ一括保存中です...");
+
+            try {
+                const promises = [];
+                let unmatchedCount = 0;
+
+                rows.forEach(tr => {
+                    const rawName = tr.querySelector('.ai-input-name').value.trim().replace(/\s+/g, '');
+                    const outScore = parseInt(tr.querySelector('.ai-input-out').value) || 0;
+                    const inScore = parseInt(tr.querySelector('.ai-input-in').value) || 0;
+                    const totalScore = outScore + inScore;
+                    const puttsVal = tr.querySelector('.ai-input-putts').value;
+                    const putts = puttsVal !== "" ? parseInt(puttsVal) : null;
+
+                    const matchedMember = membersData.find(m => m.name === rawName || m.name.includes(rawName) || rawName.includes(m.name));
+                    
+                    const memberId = matchedMember ? matchedMember.id : "unknown_member";
+                    const memberName = matchedMember ? matchedMember.name : rawName;
+
+                    if (!matchedMember) {
+                        unmatchedCount++;
+                    }
+
+                    promises.push(
+                        addDoc(collection(db, "scores"), {
+                            memberId,
+                            memberName,
+                            date: commonDate,
+                            course: commonCourse,
+                            outScore,
+                            inScore,
+                            totalScore,
+                            putts,
+                            type: "部内合宿",
+                            season: systemSettings.currentSeason || 1,
+                            createdAt: serverTimestamp()
+                        })
+                    );
+                });
+
+                await Promise.all(promises);
+                window.closeModal('modal-score');
+                window.showToast(`✅ ${rows.length}件のスコアを一括登録しました！${unmatchedCount > 0 ? `(⚠️名簿未一致 ${unmatchedCount}件)` : ''}`);
+
+            } catch (err) {
+                alert("一括保存エラー: " + err.message);
+            }
+        };
+
+        document.getElementById('form-score').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const memberId = document.getElementById('score-member-select').value;
+            if (!memberId) {
+                alert("リストから部員を選択してください。");
+                return;
+            }
+            const date = document.getElementById('score-date').value;
+            const course = document.getElementById('score-course').value.trim();
+            const outScore = parseInt(document.getElementById('score-out').value) || 0;
+            const inScore = parseInt(document.getElementById('score-in').value) || 0;
+            const totalScore = outScore + inScore;
+            const putts = parseInt(document.getElementById('score-putts').value) || null;
+            const type = document.getElementById('score-type').value;
+
+            const member = membersData.find(m => m.id === memberId);
+            const memberName = member ? member.name : "不明";
+
+            try {
+                await addDoc(collection(db, "scores"), {
+                    memberId, 
+                    memberName, 
+                    date, 
+                    course, 
+                    outScore, 
+                    inScore, 
+                    totalScore, 
+                    putts, 
+                    type,
+                    season: systemSettings.currentSeason || 1,
+                    createdAt: serverTimestamp()
+                });
+                window.showToast("スコアを記録しました");
+                window.closeModal('modal-score');
+                e.target.reset();
+            } catch (err) {
+                alert("スコア保存エラー: " + err.message);
+            }
+        });
+
+        window.deleteScore = async (id) => {
+            if (confirm("このスコア記録を削除しますか？")) {
+                try {
+                    await deleteDoc(doc(db, "scores", id));
+                    window.showToast("スコアを削除しました");
+                } catch (err) {
+                    alert("削除エラー: " + err.message);
+                }
+            }
+        };
+
+        document.getElementById('form-update-profile').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentUserUid) return;
+
+            const updatedName = document.getElementById('mypage-input-name').value.trim().replace(/\s+/g, '');
+            const updatedGrade = document.getElementById('mypage-input-grade').value;
+            const updatedPhoto = document.getElementById('mypage-input-photo').value.trim() || '⛳';
+            const updatedBio = document.getElementById('mypage-input-bio').value.trim();
+
+            try {
+                await updateDoc(doc(db, "members", currentUserUid), {
+                    name: updatedName,
+                    grade: updatedGrade,
+                    photoUrl: updatedPhoto,
+                    bio: updatedBio
+                });
+                window.showToast("プロフィール情報を更新しました！");
+            } catch (err) {
+                alert("プロフィール更新エラー: " + err.message);
+            }
+        });
+
+        function calculateEloAndStats(targetSeason = 'current', filterDiv = 'all') {
+            const statsMap = {};
+            
+            membersData.forEach(m => {
+                let resolvedDiv = m.division || "3";
+                if (targetSeason !== 'all' && m.divisionHistory && m.divisionHistory[`season_${targetSeason}`]) {
+                    resolvedDiv = m.divisionHistory[`season_${targetSeason}`];
+                }
+
+                statsMap[m.id] = {
+                    ...m,
+                    division: resolvedDiv,
+                    allScores: [],
+                    seasonScores: [],
+                    rating: 3000,
+                    hdcp: '--'
+                };
+            });
+
+            const sortedScoresAsc = [...scoresData].sort((a, b) => {
+                const dateA = a.createdAt?.toMillis ? a.createdAt.toMillis() : new Date(a.date).getTime();
+                const dateB = b.createdAt?.toMillis ? b.createdAt.toMillis() : new Date(b.date).getTime();
+                return dateA - dateB;
+            });
+
+            sortedScoresAsc.forEach(s => {
+                if (statsMap[s.memberId]) {
+                    const scoreSeason = s.season || 1;
+                    statsMap[s.memberId].allScores.push(s);
+
+                    if (targetSeason === 'all' || scoreSeason.toString() === targetSeason.toString()) {
+                        statsMap[s.memberId].seasonScores.push(s);
+                    }
+                }
+            });
+
+            Object.values(statsMap).forEach(m => {
+                const targetScores = (targetSeason === 'all') ? m.allScores : m.seasonScores;
+                const totalCount = targetScores.length;
+                if (totalCount >= 3) {
+                    const avg = targetScores.reduce((acc, cur) => acc + cur.totalScore, 0) / totalCount;
+                    let calculatedHdcp = (avg - 72) * 0.9;
+                    if (calculatedHdcp < 0) calculatedHdcp = 0.0;
+                    m.hdcp = calculatedHdcp.toFixed(1);
+                } else {
+                    m.hdcp = `Placement (${totalCount}/3)`;
+                }
+            });
+
+            const filteredScores = sortedScoresAsc.filter(s => {
+                if (targetSeason !== 'all' && (s.season || 1).toString() !== targetSeason.toString()) return false;
+                return true;
+            });
+
+            const roundsByDate = {};
+            filteredScores.forEach(s => {
+                if (!roundsByDate[s.date]) roundsByDate[s.date] = [];
+                roundsByDate[s.date].push(s);
+            });
+
+            const runningRatings = {};
+            membersData.forEach(m => {
+                runningRatings[m.id] = 3000;
+            });
+
+            const uniqueDates = [];
+            filteredScores.forEach(s => {
+                if (!uniqueDates.includes(s.date)) uniqueDates.push(s.date);
+            });
+
+            const disabledDates = systemSettings.disabledDates || [];
+            const dailyDeltas = {};
+             
+
+            uniqueDates.forEach(date => {
+                // レート適用がオフの日付はElo計算をスキップする
+                if (disabledDates.includes(date)) return;
+
+                const dayScores = roundsByDate[date] || [];
+                if (dayScores.length < 2) return;
+
+                const sampleSeason = dayScores[0].season || 1;
+
+                let groups = [];
+                if (sampleSeason >= 2) {
+                    const divGroups = {};
+                    dayScores.forEach(s => {
+                        const m = statsMap[s.memberId];
+                        const div = m ? m.division : "3";
+                        if (!divGroups[div]) divGroups[div] = [];
+                        divGroups[div].push(s);
+                    });
+                    groups = Object.values(divGroups);
+                } else {
+                    groups = [dayScores];
+                }
+
+                groups.forEach(group => {
+                    if (group.length < 2) return;
+
+                    const sortedGroup = [...group].sort((a, b) => a.totalScore - b.totalScore);
+                    const N = sortedGroup.length;
+
+// 👇 ここから追加するコード 👇
+// 人数(N)の平方根に応じてK値を自動調整（大人数でもインフレしない）
+                    const K = Math.max(10, Math.round(150 / Math.sqrt(N)));
+// 👆 ここまで 👆
+
+                    const actualRanks = {};
+                    let i = 0;
+                    while (i < N) {
+                        let j = i;
+                        while (j < N && sortedGroup[j].totalScore === sortedGroup[i].totalScore) {
+                            j++;
+                        }
+                        const avgRank = ((i + 1) + j) / 2;
+                        for (let k = i; k < j; k++) {
+                            actualRanks[sortedGroup[k].memberId] = avgRank;
+                        }
+                        i = j;
+                    }
+
+                    const expectedRanks = {};
+                    sortedGroup.forEach(item_i => {
+                        const id_i = item_i.memberId;
+                        const R_i = runningRatings[id_i];
+                        let sumProb = 0;
+                        sortedGroup.forEach(item_j => {
+                            if (item_i.memberId === item_j.memberId) return;
+                            const id_j = item_j.memberId;
+                            const R_j = runningRatings[id_j];
+                            const prob = 1 / (1 + Math.pow(10, (R_j - R_i) / 400));
+                            sumProb += prob;
+                        });
+                        expectedRanks[id_i] = N - sumProb;
+                    });
+
+                    if (!dailyDeltas[date]) dailyDeltas[date] = {};
+
+                    sortedGroup.forEach(item => {
+                        const id = item.memberId;
+                        const eRank = expectedRanks[id];
+                        const aRank = actualRanks[id];
+                        const delta = Math.round(K * (eRank - aRank));
+
+                        runningRatings[id] += delta;
+                        dailyDeltas[date][id] = (dailyDeltas[date][id] || 0) + delta;
+                    });
+                });
+            });
+
+            Object.keys(runningRatings).forEach(id => {
+                if (statsMap[id]) {
+                    statsMap[id].rating = runningRatings[id];
+                }
+            });
+            Object.keys(runningRatings).forEach(id => {
+    if (statsMap[id]) {
+        statsMap[id].rating = runningRatings[id];
+    }
+});
+            // 順位決定用データ（レート適用 = レートOFFにされていない日のラウンド）
+const countRate = (season) => {
+    const c = {};
+    scoresData.forEach(s => {
+        if (season !== 'all' && (s.season || 1).toString() !== season.toString()) return;
+        if (disabledDates.includes(s.date)) return;
+        c[s.memberId] = (c[s.memberId] || 0) + 1;
+    });
+    return c;
+};
+const curCount = countRate(targetSeason);
+const prevSeasonNum = parseInt(targetSeason) - 1;
+const prevCount = (targetSeason !== 'all' && prevSeasonNum >= 1) ? countRate(prevSeasonNum) : {};
+Object.keys(statsMap).forEach(id => {
+    const m = statsMap[id];
+    m.rateCount = curCount[id] || 0;
+    m.prevRateCount = prevCount[id] || 0;
+    const h = parseFloat(m.hdcp);
+    m.hdcpNum = isNaN(h) ? Infinity : h;
+});
+            let processedMembers = Object.values(statsMap);
+            if (filterDiv !== 'all') {
+                processedMembers = processedMembers.filter(m => m.division === filterDiv);
+            }
+
+            return { processedMembers, dailyDeltas, roundsByDate, filteredScores };
+        }
+
+        function renderAll() {
+            renderDashboardStats();
+            window.renderLeaderboard();
+            window.renderScoresList();
+            window.renderMembersGrid();
+            renderMyPage();
+            if (!document.getElementById('sec-analytics').classList.contains('hidden')) {
+                renderChartsAndHdcpTable();
+            }
+            if (!document.getElementById('sec-daily').classList.contains('hidden')) {
+                window.renderDailyTab();
+            }
+        }
+
+        function renderDashboardStats() {
+            const seasonSelectEl = document.getElementById('rank-season-select');
+            const activeSeason = seasonSelectEl ? (seasonSelectEl.value || (systemSettings.currentSeason || 1).toString()) : (systemSettings.currentSeason || 1).toString();
+            
+            const { processedMembers, filteredScores } = calculateEloAndStats(activeSeason, currentDivFilter);
+
+            const divName = currentDivFilter === 'all' ? '全体' : `Division ${currentDivFilter}`;
+
+            document.getElementById('stat-total-members').innerText = `${processedMembers.length} 名`;
+            document.getElementById('stat-label-members').innerText = `👤 ${divName} の所属部員`;
+
+            if (processedMembers.length > 0) {
+                const sorted = [...processedMembers].sort(compareMembers);
+                document.getElementById('stat-top-rate').innerText = sorted[0].rating;
+                document.getElementById('stat-top-player').innerHTML = `🏆 保持者: ${sorted[0].name}`;
+            } else {
+                document.getElementById('stat-top-rate').innerText = '3000';
+                document.getElementById('stat-top-player').innerHTML = `🏆 保持者: --`;
+            }
+
+            const divMemberIds = new Set(processedMembers.map(m => m.id));
+            const targetDivScores = filteredScores.filter(s => divMemberIds.has(s.memberId));
+
+            document.getElementById('stat-total-rounds').innerText = `${targetDivScores.length} 回`;
+            document.getElementById('stat-label-rounds').innerText = `📋 ${divName} の提出合計`;
+
+            if (targetDivScores.length > 0) {
+                const avg = (targetDivScores.reduce((acc, cur) => acc + cur.totalScore, 0) / targetDivScores.length).toFixed(1);
+                document.getElementById('stat-avg-score').innerText = avg;
+            } else {
+                document.getElementById('stat-avg-score').innerText = '--';
+            }
+            document.getElementById('stat-label-avg').innerText = `🧮 ${divName} のスコア平均`;
+        }
+
+        window.renderLeaderboard = () => {
+            const targetSeason = document.getElementById('rank-season-select').value || (systemSettings.currentSeason || 1).toString();
+            const filterGrade = document.getElementById('rank-filter-grade').value;
+            
+            let { processedMembers } = calculateEloAndStats(targetSeason, currentDivFilter);
+
+            if (filterGrade !== 'all') {
+                processedMembers = processedMembers.filter(m => m.grade.toString() === filterGrade);
+            }
+
+            processedMembers.sort(compareMembers);
+
+            renderDashboardStats();
+
+            const tbody = document.getElementById('leaderboard-tbody');
+            const mobileList = document.getElementById('leaderboard-mobile-list');
+            const legendEl = document.getElementById('border-legend');
+            const mobileLegendEl = document.querySelector('.mobile-promotion-legend');
+            mobileLegendEl.style.display = currentDivFilter === 'all' ? 'none' : '';
+
+            if (currentDivFilter !== 'all') {
+                legendEl.classList.remove('hidden');
+            } else {
+                legendEl.classList.add('hidden');
+            }
+
+            if (processedMembers.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="py-6 text-center text-slate-400">該当する部員データがありません</td></tr>`;
+                mobileList.innerHTML = `<div class="p-6 text-center text-slate-400 text-sm">該当する部員データがありません</div>`;
+                return;
+            }
+
+            tbody.innerHTML = processedMembers.map((m, idx) => {
+                const count = m.seasonScores.length;
+                const avgScore = count > 0 ? (m.seasonScores.reduce((acc, cur) => acc + cur.totalScore, 0) / count).toFixed(1) : '--';
+                const bestScore = count > 0 ? Math.min(...m.seasonScores.map(s => s.totalScore)) : '--';
+                const badge = getRankBadge(m.rating);
+                const divBadge = getDivBadge(m.division);
+
+                let rowBorderClass = "";
+                const totalInDiv = processedMembers.length;
+                if (currentDivFilter === '1') {
+                    if (idx >= totalInDiv - 4 && totalInDiv > 4) rowBorderClass = "border-demotion";
+                } else if (currentDivFilter === '2') {
+                    if (idx < 4) rowBorderClass = "border-promotion";
+                    else if (idx >= totalInDiv - 4 && totalInDiv > 4) rowBorderClass = "border-demotion";
+                } else if (currentDivFilter === '3') {
+                    if (idx < 4) rowBorderClass = "border-promotion";
+                }
+                
+                const isImage = m.photoUrl && m.photoUrl.startsWith('http');
+                const avatarHtml = isImage ? `<img src="${m.photoUrl}" class="w-6 h-6 rounded-full inline-block mr-1.5 object-cover">` : `<span class="mr-1.5">${m.photoUrl || '⛳'}</span>`;
+
+                return `
+                    <tr class="hover:bg-slate-50 transition ${rowBorderClass}">
+                        <td class="py-3 px-4 text-center font-bold">${idx === 0 ? '🥇 1' : idx === 1 ? '🥈 2' : idx === 2 ? '🥉 3' : idx + 1}</td>
+                        <td class="py-3 px-4 font-semibold text-slate-800 flex items-center">${avatarHtml} ${m.name} <span class="text-xs text-slate-400 ml-1">(${m.grade}年・${m.gender})</span></td>
+                        <td class="py-3 px-4 text-center">${divBadge}</td>
+                        <td class="py-3 px-4 text-center font-extrabold text-emerald-800 text-base">${m.rating}</td>
+                        <td class="py-3 px-4 text-center">${badge}</td>
+                        <td class="py-3 px-4 text-center font-bold text-slate-700">${m.hdcp}</td>
+                        <td class="py-3 px-4 text-center">${avgScore}</td>
+                        <td class="py-3 px-4 text-center font-bold text-amber-600">${bestScore}</td>
+                        <td class="py-3 px-4 text-center">${count}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            mobileList.innerHTML = processedMembers.map((m, idx) => {
+                const count = m.seasonScores.length;
+                const avgScore = count > 0 ? (m.seasonScores.reduce((acc, cur) => acc + cur.totalScore, 0) / count).toFixed(1) : '--';
+                const bestScore = count > 0 ? Math.min(...m.seasonScores.map(s => s.totalScore)) : '--';
+                let zoneClass = '';
+                const totalInDiv = processedMembers.length;
+                if (currentDivFilter === '1' && idx >= totalInDiv - 4 && totalInDiv > 4) zoneClass = 'zone-down';
+                else if (currentDivFilter === '2' && idx < 4) zoneClass = 'zone-up';
+                else if (currentDivFilter === '2' && idx >= totalInDiv - 4 && totalInDiv > 4) zoneClass = 'zone-down';
+                else if (currentDivFilter === '3' && idx < 4) zoneClass = 'zone-up';
+                const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}`;
+                const divisionLabel = `Div ${m.division || '3'}`;
+                const rankBadge = getRankBadge(m.rating);
+                return `
+                    <details class="mobile-rank-card ${zoneClass}">
+                        <summary>
+                            <span class="mobile-rank-number">${medal}</span>
+                            <span class="mobile-rank-person">
+                                <span class="mobile-rank-name">${m.name}</span>
+                                <span class="mobile-rank-meta">${m.grade === 'OB' ? 'OB・OG' : `${m.grade}年`}・${m.gender || '－'} <span class="mobile-div-badge">${divisionLabel}</span><span class="mobile-rank-tag">${rankBadge}</span></span>
+                            </span>
+                            <span class="mobile-rank-rate">${m.rating}</span>
+                            <span class="mobile-rank-chevron">▶</span>
+                        </summary>
+                        <div class="mobile-rank-detail">
+                            <div><small>HDCP</small><strong>${m.hdcp ?? '－'}</strong></div>
+                            <div><small>平均スコア</small><strong>${avgScore}</strong></div>
+                            <div><small>ベスト</small><strong>${bestScore}</strong></div>
+                            <div><small>提出数</small><strong>${count}</strong></div>
+                        </div>
+                    </details>`;
+            }).join('');
+        };
+
+        window.renderScoresList = () => {
+            const targetSeason = document.getElementById('scores-season-select').value || (systemSettings.currentSeason || 1).toString();
+            const tbody = document.getElementById('scores-tbody');
+            const mobileList = document.getElementById('scores-mobile-list');
+            
+            let filteredScores = [...scoresData];
+            if (targetSeason !== 'all') {
+                filteredScores = filteredScores.filter(s => (s.season || 1).toString() === targetSeason.toString());
+            }
+
+            if (filteredScores.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="10" class="py-6 text-center text-slate-400">記録されたスコアはありません</td></tr>`;
+                mobileList.innerHTML = `<div class="p-6 text-center text-slate-400 text-sm">記録されたスコアはありません</div>`;
+                return;
+            }
+
+            tbody.innerHTML = filteredScores.map(s => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="py-3 px-4 text-xs text-slate-500 font-bold">${s.date}</td>
+                    <td class="py-3 px-4 font-semibold text-slate-800">${s.memberName}</td>
+                    <td class="py-3 px-4 text-slate-700">${s.course}</td>
+                    <td class="py-3 px-4 text-center font-bold">${s.outScore}</td>
+                    <td class="py-3 px-4 text-center font-bold">${s.inScore}</td>
+                    <td class="py-3 px-4 text-center font-bold text-emerald-700">${s.totalScore}</td>
+                    <td class="py-3 px-4 text-center text-slate-500 font-bold">${s.putts ? s.putts : '-'}</td>
+                    <td class="py-3 px-4 text-center"><span class="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">season ${s.season || 1}</span></td>
+                    <td class="py-3 px-4 text-center"><span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200">${s.type}</span></td>
+                    <td class="py-3 px-4 text-right">
+                        <button type="button" onclick="window.deleteScore('${s.id}')" class="text-xs text-red-500 hover:text-red-700 p-1 cursor-pointer">🗑️ 削除</button>
+                    </td>
+                </tr>
+            `).join('');
+
+            mobileList.innerHTML = filteredScores.map(s => `
+                <details class="mobile-score-card">
+                    <summary>
+                        <span class="mobile-score-main">
+                            <span class="mobile-score-date">${s.date}</span>
+                            <span class="mobile-score-player">${s.memberName}</span>
+                            <span class="mobile-score-course">${s.course}</span>
+                        </span>
+                        <span class="mobile-score-total">${s.totalScore}</span>
+                        <span class="mobile-rank-chevron mobile-score-chevron">▶</span>
+                    </summary>
+                    <div class="mobile-score-detail">
+                        <div><small>OUT</small><strong>${s.outScore}</strong></div>
+                        <div><small>IN</small><strong>${s.inScore}</strong></div>
+                        <div><small>パット</small><strong>${s.putts ? s.putts : '－'}</strong></div>
+                        <div><small>ゴルフ場</small><strong>${s.course}</strong></div>
+                        <div><small>シーズン</small><strong>season ${s.season || 1}</strong></div>
+                        <div><small>種別</small><strong>${s.type}</strong></div>
+                        <div class="mobile-score-actions"><button type="button" onclick="window.deleteScore('${s.id}')">🗑️ 削除</button></div>
+                    </div>
+                </details>`).join('');
+        };
+
+        window.renderDailyTab = () => {
+            const targetSeason = document.getElementById('daily-season-select').value || (systemSettings.currentSeason || 1).toString();
+            const container = document.getElementById('daily-results-container');
+            
+            const { roundsByDate, dailyDeltas } = calculateEloAndStats(targetSeason, 'all');
+            const dates = Object.keys(roundsByDate).sort((a, b) => new Date(b) - new Date(a));
+            const disabledDates = systemSettings.disabledDates || [];
+
+            if (dates.length === 0) {
+                container.innerHTML = `<div class="glass-card p-6 rounded-xl text-center text-slate-400">該当シーズンのラウンド記録がまだありません</div>`;
+                return;
+            }
+
+            container.innerHTML = dates.map(date => {
+                const dayScores = roundsByDate[date];
+                const sortedDayScores = [...dayScores].sort((a, b) => a.totalScore - b.totalScore);
+                const deltas = dailyDeltas[date] || {};
+                const isRateEnabled = !disabledDates.includes(date);
+
+                const rows = sortedDayScores.map((s, idx) => {
+                    const delta = deltas[s.memberId];
+                    let deltaStr = '<span class="text-slate-400 text-xs">適用OFF</span>';
+                    
+                    if (isRateEnabled) {
+                        if (delta !== undefined) {
+                            if (delta > 0) {
+                                deltaStr = `<span class="text-emerald-600 font-bold">+${delta}</span>`;
+                            } else if (delta < 0) {
+                                deltaStr = `<span class="text-rose-600 font-bold">${delta}</span>`;
+                            } else {
+                                deltaStr = `<span class="text-slate-500 font-bold">±0</span>`;
+                            }
+                        } else {
+                            deltaStr = '<span class="text-slate-400 text-xs">対象外</span>';
+                        }
+                    }
+
+                    return `
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="py-3 px-4 text-center font-bold">${idx === 0 ? '🥇 1位' : idx === 1 ? '🥈 2位' : idx === 2 ? '🥉 3位' : `${idx + 1}位`}</td>
+                            <td class="py-3 px-4 font-semibold text-slate-800">${s.memberName}</td>
+                            <td class="py-3 px-4 text-slate-600">${s.course}</td>
+                            <td class="py-3 px-4 text-center font-bold text-emerald-700 text-base">${s.totalScore} <span class="text-xs font-normal text-slate-500">(OUT:${s.outScore} / IN:${s.inScore})</span></td>
+                            <td class="py-3 px-4 text-center">${deltaStr}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+                return `
+                    <div class="glass-card rounded-xl shadow-sm overflow-hidden">
+                        <div class="p-4 bg-emerald-900 text-white flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                            <div class="flex items-center gap-2">
+                                <h3 class="font-bold text-base">
+                                    📅 プレー日: ${date}
+                                </h3>
+                                <span class="text-xs bg-emerald-800 text-amber-300 px-3 py-1 rounded-full border border-emerald-700">参加人数: ${dayScores.length}名</span>
+                            </div>
+                            <!-- レート適用 ON/OFF トグルスイッチ -->
+                            <div class="flex items-center gap-2 bg-emerald-950 px-3 py-1.5 rounded-lg border border-emerald-700">
+                                <span class="text-xs text-emerald-200 font-bold">レート適用:</span>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" ${isRateEnabled ? 'checked' : ''} onchange="window.toggleDateRate('${date}', this.checked)" class="sr-only peer">
+                                    <div class="w-9 h-5 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                                    <span class="ml-2 text-xs font-bold ${isRateEnabled ? 'text-emerald-300' : 'text-slate-400'}">${isRateEnabled ? 'ON' : 'OFF'}</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-100 text-slate-600 text-xs uppercase font-semibold border-b border-slate-200">
+                                        <th class="py-3 px-4 w-24 text-center">順位</th>
+                                        <th class="py-3 px-4">プレイヤー</th>
+                                        <th class="py-3 px-4">ゴルフ場名</th>
+                                        <th class="py-3 px-4 text-center">スコア</th>
+                                        <th class="py-3 px-4 text-center">この日のレート変動</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 text-sm">
+                                    ${rows}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        };
+
+        window.openMemberDetailModal = (memberId) => {
+            const activeSeason = (systemSettings.currentSeason || 1).toString();
+            const { processedMembers } = calculateEloAndStats(activeSeason, 'all');
+            const member = processedMembers.find(m => m.id === memberId);
+
+            if (!member) return;
+
+            const avatarContainer = document.getElementById('detail-member-avatar');
+            if (member.photoUrl && member.photoUrl.startsWith('http')) {
+                avatarContainer.innerHTML = `<img src="${member.photoUrl}" class="w-full h-full object-cover">`;
+            } else {
+                avatarContainer.innerText = member.photoUrl || '⛳';
+            }
+
+            document.getElementById('detail-member-name').innerText = member.name;
+            document.getElementById('detail-member-grade').innerText = `${member.grade}年 (${member.gender})`;
+            document.getElementById('detail-member-div').innerHTML = getDivBadge(member.division);
+            document.getElementById('detail-member-badge').innerHTML = getRankBadge(member.rating);
+            document.getElementById('detail-member-bio').innerText = member.bio ? `"${member.bio}"` : '自己紹介未設定';
+
+            document.getElementById('detail-stat-rate').innerText = member.rating;
+            document.getElementById('detail-stat-hdcp').innerText = member.hdcp;
+
+            const totalCount = member.allScores.length;
+            document.getElementById('detail-rounds-count').innerText = `通算 ${totalCount} 回提出`;
+
+            if (totalCount > 0) {
+                const avg = (member.allScores.reduce((acc, cur) => acc + cur.totalScore, 0) / totalCount).toFixed(1);
+                const best = Math.min(...member.allScores.map(s => s.totalScore));
+                document.getElementById('detail-stat-avg').innerText = avg;
+                document.getElementById('detail-stat-best').innerText = best;
+            } else {
+                document.getElementById('detail-stat-avg').innerText = '--';
+                document.getElementById('detail-stat-best').innerText = '--';
+            }
+
+            const tbody = document.getElementById('detail-scores-tbody');
+            if (totalCount === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="py-4 text-center text-slate-400">提出スコアはありません</td></tr>`;
+            } else {
+                const sortedMemberScores = [...member.allScores].sort((a,b) => new Date(b.date) - new Date(a.date));
+                tbody.innerHTML = sortedMemberScores.map(s => `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="py-2 px-3 font-bold text-slate-500">${s.date}</td>
+                        <td class="py-2 px-3 font-medium text-slate-800">${s.course}</td>
+                        <td class="py-2 px-3 text-center font-bold">${s.outScore}</td>
+                        <td class="py-2 px-3 text-center font-bold">${s.inScore}</td>
+                        <td class="py-2 px-3 text-center font-bold text-emerald-700">${s.totalScore}</td>
+                        <td class="py-2 px-3 text-center font-bold text-slate-500">${s.putts ? s.putts : '-'}</td>
+                        <td class="py-2 px-3 text-center"><span class="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200 text-[10px]">${s.type}</span></td>
+                    </tr>
+                `).join('');
+            }
+
+            document.getElementById('modal-member-detail').classList.remove('hidden');
+        };
+
+        window.renderMembersGrid = () => {
+            const grid = document.getElementById('members-grid');
+            if (membersData.length === 0) {
+                grid.innerHTML = `<p class="col-span-full text-center text-slate-400 py-6">登録部員がいません</p>`;
+                return;
+            }
+
+            const selectedGrade = document.getElementById('members-filter-grade').value || 'all';
+            const activeSeason = (systemSettings.currentSeason || 1).toString();
+            let { processedMembers } = calculateEloAndStats(activeSeason, 'all');
+
+            if (selectedGrade !== 'all') {
+                processedMembers = processedMembers.filter(m => m.grade.toString() === selectedGrade.toString());
+            }
+
+            if (processedMembers.length === 0) {
+                grid.innerHTML = `<p class="col-span-full text-center text-slate-400 py-6">該当する学年の部員がいません</p>`;
+                return;
+            }
+
+            grid.innerHTML = processedMembers.map(m => {
+                const badge = getRankBadge(m.rating);
+                const divBadge = getDivBadge(m.division);
+                const isImage = m.photoUrl && m.photoUrl.startsWith('http');
+                const avatarHtml = isImage ? `<img src="${m.photoUrl}" class="w-10 h-10 rounded-full object-cover border border-slate-300 shrink-0">` : `<div class="w-10 h-10 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center font-bold text-lg shrink-0">${m.photoUrl || '⛳'}</div>`;
+
+                return `
+                    <div onclick="window.openMemberDetailModal('${m.id}')" class="glass-card p-4 rounded-xl shadow-sm flex items-center gap-3 cursor-pointer hover:border-emerald-500 hover:shadow-md transition group">
+                        ${avatarHtml}
+                        <div class="flex-grow min-w-0">
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-slate-800 group-hover:text-emerald-700 transition truncate">${m.name}</span>
+                                <span class="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded shrink-0">${m.grade}年 (${m.gender})</span>
+                                ${divBadge}
+                            </div>
+                            <div class="mt-1 flex items-center gap-2 flex-wrap">
+                                ${badge}
+                                <span class="text-xs text-slate-500">Rate: <b class="text-emerald-800 font-extrabold text-sm">${m.rating}</b> | HDCP: <b class="text-slate-700 font-bold">${m.hdcp}</b></span>
+                            </div>
+                            ${m.bio ? `<p class="text-[11px] text-slate-400 mt-1.5 bg-slate-50 p-1.5 rounded italic truncate">"${m.bio}"</p>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        };
+
+        function renderMyPage() {
+            const notLoggedInDiv = document.getElementById('mypage-not-logged-in');
+            const contentDiv = document.getElementById('mypage-content');
+
+            if (!currentUserUid) {
+                notLoggedInDiv.classList.remove('hidden');
+                contentDiv.classList.add('hidden');
+                return;
+            }
+
+            notLoggedInDiv.classList.add('hidden');
+            contentDiv.classList.remove('hidden');
+
+            const activeSeason = (systemSettings.currentSeason || 1).toString();
+            const { processedMembers } = calculateEloAndStats(activeSeason, 'all');
+            const myStats = processedMembers.find(m => m.id === currentUserUid);
+
+            if (myStats) {
+                document.getElementById('mypage-profile-name').innerText = myStats.name;
+                document.getElementById('mypage-profile-grade').innerText = `${myStats.grade}年 (${myStats.gender}) - 一橋大学ゴルフ部`;
+                document.getElementById('mypage-stat-rate').innerText = myStats.rating;
+                document.getElementById('mypage-stat-div').innerHTML = getDivBadge(myStats.division);
+                document.getElementById('mypage-profile-badge').innerHTML = getRankBadge(myStats.rating);
+
+                const avatarContainer = document.getElementById('mypage-avatar-container');
+                if (myStats.photoUrl && myStats.photoUrl.startsWith('http')) {
+                    avatarContainer.innerHTML = `<img src="${myStats.photoUrl}" class="w-full h-full object-cover">`;
+                } else {
+                    avatarContainer.innerHTML = `<span id="mypage-avatar-text">${myStats.photoUrl || '⛳'}</span>`;
+                }
+
+                document.getElementById('mypage-input-name').value = myStats.name || '';
+                document.getElementById('mypage-input-grade').value = myStats.grade || '1';
+                document.getElementById('mypage-input-photo').value = myStats.photoUrl || '⛳';
+                document.getElementById('mypage-input-email').value = myStats.email || auth.currentUser?.email || '';
+                document.getElementById('mypage-input-bio').value = myStats.bio || '';
+            }
+        }
+
+        window.renderChartsAndHdcpTable = () => {
+            const analyticsSeasonSelect = document.getElementById('analytics-season-select');
+            const targetSeason = analyticsSeasonSelect ? (analyticsSeasonSelect.value || 'all') : 'all';
+
+            const { processedMembers } = calculateEloAndStats(targetSeason, 'all');
+
+            const ctxDist = document.getElementById('chart-score-dist').getContext('2d');
+            const bins = [
+                { label: '110〜', min: 110, max: 999 },
+                { label: '100〜109', min: 100, max: 109 },
+                { label: '95〜99', min: 95, max: 99 },
+                { label: '90〜94', min: 90, max: 94 },
+                { label: '85〜89', min: 85, max: 89 },
+                { label: '80〜84', min: 80, max: 84 },
+                { label: '75〜79', min: 75, max: 79 },
+                { label: '70〜74', min: 70, max: 74 },
+                { label: '60〜69', min: 60, max: 69 }
+            ];
+
+            const memberAverages = processedMembers
+                .filter(m => {
+                    const targetScores = (targetSeason === 'all') ? m.allScores : m.seasonScores;
+                    return targetScores.length > 0;
+                })
+                .map(m => {
+                    const targetScores = (targetSeason === 'all') ? m.allScores : m.seasonScores;
+                    return targetScores.reduce((acc, cur) => acc + cur.totalScore, 0) / targetScores.length;
+                });
+
+            const counts = bins.map(bin => memberAverages.filter(avg => avg >= bin.min && avg <= bin.max).length);
+
+            if (chartDistInstance) chartDistInstance.destroy();
+            chartDistInstance = new Chart(ctxDist, {
+                type: 'bar',
+                data: {
+                    labels: bins.map(b => b.label),
+                    datasets: [{ label: '人数', data: counts, backgroundColor: '#10b981', borderRadius: 6 }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { title: { display: true, text: '平均スコア (右側ほどスコアが低く優秀)' } },
+                        y: { beginAtZero: true, ticks: { precision: 0 }, title: { display: true, text: '人数' } }
+                    }
+                }
+            });
+
+            const ctxGrade = document.getElementById('chart-grade-hdcp').getContext('2d');
+            const grades = ['1', '2', '3', '4', 'OB'];
+            const avgHdcps = grades.map(g => {
+                const list = processedMembers.filter(m => {
+                    const targetScores = (targetSeason === 'all') ? m.allScores : m.seasonScores;
+                    return m.grade.toString() === g && targetScores.length >= 3;
+                });
+                if (list.length === 0) return 0;
+                return (list.reduce((acc, m) => acc + parseFloat(m.hdcp), 0) / list.length).toFixed(1);
+            });
+
+            if (chartGradeHdcpInstance) chartGradeHdcpInstance.destroy();
+            chartGradeHdcpInstance = new Chart(ctxGrade, {
+                type: 'bar',
+                data: {
+                    labels: ['1年', '2年', '3年', '4年', 'OB'],
+                    datasets: [{ label: '平均ハンディキャップ', data: avgHdcps, backgroundColor: '#f59e0b', borderRadius: 6 }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+
+            const hdcpTbody = document.getElementById('hdcp-leaderboard-tbody');
+            const hdcpSorted = [...processedMembers].sort((a, b) => {
+                const aScores = (targetSeason === 'all') ? a.allScores : a.seasonScores;
+                const bScores = (targetSeason === 'all') ? b.allScores : b.seasonScores;
+                const aIsPl = aScores.length < 3;
+                const bIsPl = bScores.length < 3;
+                if (aIsPl && !bIsPl) return 1;
+                if (!aIsPl && bIsPl) return -1;
+                if (aIsPl && bIsPl) return 0;
+                return parseFloat(a.hdcp) - parseFloat(b.hdcp);
+            });
+
+            if (hdcpSorted.length === 0) {
+                hdcpTbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-slate-400">部員データがありません</td></tr>`;
+                return;
+            }
+
+            hdcpTbody.innerHTML = hdcpSorted.map((m, idx) => {
+                const targetScores = (targetSeason === 'all') ? m.allScores : m.seasonScores;
+                const count = targetScores.length;
+                const avgScore = count > 0 ? (targetScores.reduce((acc, cur) => acc + cur.totalScore, 0) / count).toFixed(1) : '--';
+                const bestScore = count > 0 ? Math.min(...targetScores.map(s => s.totalScore)) : '--';
+                const isPl = count < 3;
+                const divBadge = getDivBadge(m.division);
+
+                return `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="py-3 px-4 text-center font-bold">${isPl ? '-' : (idx + 1)}</td>
+                        <td class="py-3 px-4 font-semibold text-slate-800">${m.name} <span class="text-xs text-slate-400">(${m.grade}年・${m.gender})</span></td>
+                        <td class="py-3 px-4 text-center">${divBadge}</td>
+                        <td class="py-3 px-4 text-center font-bold ${isPl ? 'text-amber-600' : 'text-emerald-700'}">${m.hdcp}</td>
+                        <td class="py-3 px-4 text-center font-bold">${avgScore}</td>
+                        <td class="py-3 px-4 text-center font-bold text-amber-600">${bestScore}</td>
+                        <td class="py-3 px-4 text-center">${count}</td>
+                    </tr>
+                `;
+            }).join('');
+        };
+
+        function toBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        // Mobile-only interaction wiring; these controls delegate to existing app functions.
+        document.getElementById('mobile-menu-button').addEventListener('click', window.openMobileDrawer);
+        document.getElementById('mobile-drawer-close').addEventListener('click', window.closeMobileDrawer);
+        document.getElementById('mobile-drawer-scrim').addEventListener('click', window.closeMobileDrawer);
+        document.getElementById('sync-status-badge').addEventListener('click', () => {
+            document.getElementById('sync-status-badge').classList.toggle('mobile-sync-open');
+        });
+        document.getElementById('modal-score').addEventListener('click', (event) => {
+            if (event.target.id === 'modal-score' || event.target.classList.contains('mobile-score-backdrop')) {
+                window.closeModal('modal-score');
+            }
+        });
+
+        const mobileScoreSheet = document.querySelector('#modal-score .mobile-score-sheet');
+        const mobileScoreGrab = document.querySelector('#modal-score .mobile-sheet-grab');
+        const mobileScoreActions = document.querySelector('#form-score .mobile-score-actions');
+        const mobileScoreModal = document.getElementById('modal-score');
+        let scoreGrabStartY = null;
+        let scoreSheetTouchStartY = null;
+
+        mobileScoreGrab.addEventListener('touchstart', (event) => {
+            scoreGrabStartY = event.touches.length ? event.touches[0].clientY : null;
+        }, { passive: true });
+        mobileScoreGrab.addEventListener('touchmove', (event) => {
+            if (scoreGrabStartY !== null && event.touches.length) {
+                const deltaY = event.touches[0].clientY - scoreGrabStartY;
+                if (deltaY > 8) event.preventDefault();
+            }
+        }, { passive: false });
+        mobileScoreGrab.addEventListener('touchend', (event) => {
+            if (scoreGrabStartY === null || !event.changedTouches.length) return;
+            const deltaY = event.changedTouches[0].clientY - scoreGrabStartY;
+            scoreGrabStartY = null;
+            if (deltaY >= 80) window.closeModal('modal-score');
+        }, { passive: true });
+        mobileScoreGrab.addEventListener('touchcancel', () => { scoreGrabStartY = null; }, { passive: true });
+
+        // Disable touch movement outside the sheet for older iOS browsers without overscroll-behavior support.
+        mobileScoreModal.addEventListener('touchmove', (event) => {
+            if (!window.matchMedia('(max-width: 768px)').matches) return;
+            if (!mobileScoreSheet.contains(event.target)) event.preventDefault();
+        }, { passive: false });
+
+        // Allow normal sheet scrolling; prevent only overscroll gestures at the top/bottom edge.
+        mobileScoreSheet.addEventListener('touchstart', (event) => {
+            scoreSheetTouchStartY = event.touches.length === 1 ? event.touches[0].clientY : null;
+        }, { passive: true });
+        mobileScoreSheet.addEventListener('touchmove', (event) => {
+            if (!window.matchMedia('(max-width: 768px)').matches || scoreSheetTouchStartY === null || event.touches.length !== 1) return;
+            const deltaY = event.touches[0].clientY - scoreSheetTouchStartY;
+            const nestedCandidate = event.target.closest('.max-h-56, .overflow-y-auto');
+            const nestedScroller = nestedCandidate && nestedCandidate !== mobileScoreSheet && nestedCandidate.scrollHeight > nestedCandidate.clientHeight + 1 ? nestedCandidate : null;
+            const scrollArea = nestedScroller && mobileScoreSheet.contains(nestedScroller) ? nestedScroller : mobileScoreSheet;
+            const atTop = scrollArea.scrollTop <= 0;
+            const atBottom = scrollArea.scrollTop + scrollArea.clientHeight >= scrollArea.scrollHeight - 1;
+            if ((atTop && deltaY > 0) || (atBottom && deltaY < 0)) event.preventDefault();
+        }, { passive: false });
+        mobileScoreSheet.addEventListener('touchend', () => { scoreSheetTouchStartY = null; }, { passive: true });
+        mobileScoreSheet.addEventListener('touchcancel', () => { scoreSheetTouchStartY = null; }, { passive: true });
+
+        // Once the entrance animation ends, remove the transform context for stable sticky positioning.
+        mobileScoreModal.addEventListener('transitionend', (event) => {
+            if (event.target !== mobileScoreSheet || event.propertyName !== 'transform') return;
+            if (mobileScoreModal.classList.contains('sheet-entering') && mobileScoreModal.classList.contains('sheet-open')) {
+                mobileScoreModal.classList.remove('sheet-entering', 'sheet-open');
+                mobileScoreSheet.style.transform = 'none';
+                mobileScoreSheet.style.transition = 'none';
+            }
+        });
+
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', updateMobileScoreViewportHeight);
+        }
+        window.addEventListener('resize', updateMobileScoreViewportHeight);
+        mobileScoreSheet.addEventListener('focusin', (event) => {
+            if (!event.target.matches('input, select, textarea')) return;
+            window.setTimeout(() => {
+                if (mobileScoreModal.classList.contains('hidden')) return;
+                const sheetRect = mobileScoreSheet.getBoundingClientRect();
+                const fieldRect = event.target.getBoundingClientRect();
+                const actionTop = mobileScoreActions.getBoundingClientRect().top;
+                const visibleTop = sheetRect.top + 58;
+                const visibleBottom = Math.min(sheetRect.bottom, actionTop) - 12;
+                const fieldCenter = fieldRect.top + fieldRect.height / 2;
+                const visibleCenter = (visibleTop + visibleBottom) / 2;
+                if (fieldCenter < visibleTop || fieldCenter > visibleBottom) {
+                    mobileScoreSheet.scrollTop += fieldCenter - visibleCenter;
+                }
+            }, 220);
+        });
+        document.querySelectorAll('input[name="score-type-mobile"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                if (radio.checked) document.getElementById('score-type').value = radio.value;
+            });
+        });
+        const mobileStatsGrid = document.getElementById('dashboard-stats-grid');
+        const mobileStatsDots = [...document.querySelectorAll('#dashboard-stats-dots span')];
+        mobileStatsGrid.addEventListener('scroll', () => {
+            const maxScroll = mobileStatsGrid.scrollWidth - mobileStatsGrid.clientWidth;
+            const progress = maxScroll > 0 ? mobileStatsGrid.scrollLeft / maxScroll : 0;
+            const activeIndex = Math.max(0, Math.min(2, Math.round(progress * 2)));
+            mobileStatsDots.forEach((dot, index) => dot.classList.toggle('active', index === activeIndex));
+        }, { passive: true });
+        const seasonBadgeObserver = new MutationObserver(() => {
+            document.getElementById('mobile-season-label').textContent = document.getElementById('header-current-season-badge').textContent.trim();
+        });
+        seasonBadgeObserver.observe(document.getElementById('header-current-season-badge'), { childList: true, characterData: true, subtree: true });
+        document.getElementById('mobile-season-label').textContent = document.getElementById('header-current-season-badge').textContent.trim();
+        updateMobileDrawerProfile();
+        setupRealtimeListeners();
+    </script>
+</body>
+</html>
